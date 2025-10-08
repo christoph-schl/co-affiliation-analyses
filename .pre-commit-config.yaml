@@ -32,6 +32,8 @@ repos:
     -   id: mypy
         files: ^src/
         args: []
+        additional_dependencies:
+          - pydantic==2.12.0
 
 #-   repo: https://github.com/pycqa/isort
 #    rev: 5.13.2
