@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Optional, Any
+from typing import Any, Optional
 
 import geopandas as gpd
 import numpy as np
