@@ -32,15 +32,13 @@ repos:
   rev: v1.18.2
   hooks:
     - id: mypy
-      # optional: restrict to same files pattern you want
-
-      files: ^(src/multiple_affiliation_analysis|tests)/
+      # Only run on files inside src/ and tests/
+      files: ^(src|tests)/
       args:
-        - --namespace-packages
-        - --explicit-package-bases
-        # ensure mypy reads your config file (optional, but explicit)
-        - --config-file
-        - mypy.ini
+          - --namespace-packages
+          - --explicit-package-bases
+          - --config-file
+          - mypy.ini
       additional_dependencies:
         - pydantic==2.12.0
 
