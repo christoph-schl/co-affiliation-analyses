@@ -1,12 +1,15 @@
 from itertools import combinations
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 import geopandas as gpd
+import networkx as nx
 import numpy as np
 import pandas as pd
 import structlog
+from networkx import Graph
 
 from src.mma.constants import (
+    AFFILIATION_EDGE_COUNT_COLUMN,
     AFFILIATION_ID_COLUMN,
     ARTICLE_AFFILIATION_COUNT_COLUMN,
     ARTICLE_AFFILIATION_ID_COLUMN,
@@ -14,15 +17,19 @@ from src.mma.constants import (
     FROM_AFFILIATION_INDEX_COLUMN,
     FROM_NODE_COLUMN,
     GEOMETRY_COLUMN,
+    PREFERRED_AFFILIATION_NAME_COLUMN,
     TO_AFFILIATION_INDEX_COLUMN,
     TO_NODE_COLUMN,
     WGS84_EPSG,
 )
 from src.mma.utils.geo_tools import create_line_geom
+from src.mma.utils.utils import filter_links_by_country
+from src.mma.utils.wrappers import get_execution_time
 
 _logger = structlog.getLogger()
 
 _EDGE_COLUMN = "edge"
+_NO_DATA_STRING = "nodata"
 
 
 def _get_combination_list(input_list: List[int]) -> List[Tuple[int, int]]:
@@ -30,7 +37,7 @@ def _get_combination_list(input_list: List[int]) -> List[Tuple[int, int]]:
     return list(np.asarray(combination_list, dtype=np.int64))
 
 
-def _generate_edges(row: pd.Series):
+def _generate_edges(row: pd.Series) -> List[Tuple[int, int]]:
     nodes = list(map(np.int64, row.split("-")))  # Convert to int64
     return _get_combination_list(input_list=nodes)
 
@@ -163,12 +170,124 @@ def _create_link_gdf(
     return link_df
 
 
+@get_execution_time
 def create_affiliation_links(
-    article_author_df: pd.DataFrame, affiliation_gdf: gpd.GeoDataFrame, verbose: bool = True
+    article_author_df: pd.DataFrame,
+    affiliation_gdf: gpd.GeoDataFrame,
+    country_filter: Optional[str] = None,
+    verbose: bool = True,
 ) -> gpd.GeoDataFrame:
+    """
+    Creates a GeoDataFrame with all unique link combinations for authors with multiple
+    affiliations.
+
+    For each author in `self.article_df`, all possible pairwise links between affiliations
+    stored in the `author_afids` column are generated. For example, if an author has
+    affiliations `[1, 2, 3]`, the resulting links will be `(1, 2)`, `(1, 3)`, and `(2, 3)`.
+    Affiliation information, including geometry, is merged into the link DataFrame, resulting in
+    a GeoDataFrame with line geometries representing each link.
+
+    :return: A GeoDataFrame containing links between affiliations, with a line geometry for each
+             link.
+    """
 
     multi_affiliation_df = _filter_multi_affiliation(article_author_df=article_author_df)
     link_df = _create_link_df(article_author_df=multi_affiliation_df)
     link_gdf = _create_link_gdf(affiliation_gdf=affiliation_gdf, link_df=link_df, verbose=verbose)
 
+    if country_filter is not None:
+        link_gdf = filter_links_by_country(link_gdf=link_gdf, country_filter=country_filter)
+
     return link_gdf
+
+
+def _create_graph_from_edges(
+    edge_gdf: gpd.GeoDataFrame, from_node_column: str, to_node_column: str, weight_column: str
+) -> Graph:
+    """
+    Create a weighted NetworkX graph from an edge GeoDataFrame.
+    :param edge_gdf: GeoDataFrame containing edge data.
+    :param from_node_column: Column name for the source node.
+    :param to_node_column: Column name for the target node.
+    :param weight_column: Column name for the edge weight.
+    :return: A NetworkX graph with weighted edges.
+    """
+
+    G = nx.Graph()
+    edge_list = list(
+        zip(
+            edge_gdf[from_node_column],
+            edge_gdf[to_node_column],
+            edge_gdf[weight_column],
+        )
+    )
+    G.add_weighted_edges_from(edge_list)
+    return G
+
+
+def compute_edge_strengths(link_gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
+    """
+    Compute the strength of links between nodes by counting
+    the number of edges between each (from_node, to_node) pair.
+    :param link_gdf: GeoDataFrame containing at least `from_node` and `to_node` column.
+    :return: GeoDataFrame with one edge per (from_node, to_node) pair and the new column
+            `affiliation_edge_count` representing edge strength.
+    """
+
+    edge_gdf = link_gdf.copy()
+
+    edge_gdf[AFFILIATION_EDGE_COUNT_COLUMN] = edge_gdf.groupby(
+        [FROM_NODE_COLUMN, TO_NODE_COLUMN]
+    ).transform("size")
+    edge_gdf = edge_gdf.drop_duplicates(subset=[FROM_NODE_COLUMN, TO_NODE_COLUMN])
+    return edge_gdf
+
+
+@get_execution_time
+def create_graph_from_links(
+    link_gdf: gpd.GeoDataFrame,
+    min_weight: Optional[int] = None,
+) -> nx.Graph:
+    """
+    Creates an affiliation network graph from a GeoDataFrame of links between nodes (affiliations).
+
+    This function aggregates link data between pairs of nodes (`from_node`, `to_node`), computes the
+    connection strength for each (source, target) pair, and returns a weighted NetworkX graph.
+    Optionally, weak connections (below a given weight threshold) can be filtered out.
+
+    :param link_gdf: The GeoDataFrame containing link data.
+    :param min_weight: The minimum link strength to retain. Edges with lower weights are removed
+                       from the graph. If ``None``, all edges are included.
+
+    :return: A weighted, undirected NetworkX graph where:
+
+        - **Nodes** represent affiliations.
+        - **Edges** connect affiliations based on authors with multiple affiliations.
+        - **Edge weights** correspond to the strength or frequency of those links.
+    """
+
+    # node columns
+    from_col = PREFERRED_AFFILIATION_NAME_COLUMN
+    to_col = f"{PREFERRED_AFFILIATION_NAME_COLUMN}_to"
+
+    link_gdf = link_gdf.copy()
+
+    # compute aggregated edges
+    edge_gdf = compute_edge_strengths(link_gdf=link_gdf)
+
+    # apply minimum weight filter (if requested)
+    if min_weight is not None:
+        edge_gdf = edge_gdf[edge_gdf[AFFILIATION_EDGE_COUNT_COLUMN] >= min_weight]
+
+    # replace missing node names with a sentinel
+    edge_gdf[from_col] = edge_gdf[from_col].fillna(_NO_DATA_STRING)
+    edge_gdf[to_col] = edge_gdf[to_col].fillna(_NO_DATA_STRING)
+
+    affiliation_graph = _create_graph_from_edges(
+        edge_gdf=edge_gdf,
+        from_node_column=from_col,
+        to_node_column=to_col,
+        weight_column=AFFILIATION_EDGE_COUNT_COLUMN,
+    )
+
+    return affiliation_graph

@@ -6,6 +6,9 @@ AFFILIATION_ID_PARENT_COLUMN = "affiliation_id_parent"
 GEOMETRY_COLUMN = "geometry"
 WGS84_EPSG = 4326
 ISO3_COUNTRY_CODE_COLUMN = "iso3_code"
+AFFILIATION_EDGE_COUNT_COLUMN = "affiliation_edge_count"
+PREFERRED_AFFILIATION_NAME_COLUMN = "preferred_name"
+ORGANISATION_TYPE_COLUMN = "org_type"
 
 
 # article column names
@@ -22,5 +25,5 @@ TO_NODE_COLUMN = "to_node"
 FROM_AFFILIATION_INDEX_COLUMN = "from_affiliation_idx"
 TO_AFFILIATION_INDEX_COLUMN = "to_affiliation_idx"
 
-DEFAULT_MAX_WORKERS_PARALLEL_PROCESSING = os.cpu_count() - 2
+DEFAULT_MAX_WORKERS_PARALLEL_PROCESSING: int = max((os.cpu_count() or 2) - 2, 1)
 CHUNK_SIZE_PARALLEL_PROCESSING = 400

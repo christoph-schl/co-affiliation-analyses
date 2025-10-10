@@ -12,14 +12,13 @@ from src.mma.constants import (
     ARTICLE_AFFILIATION_INDEX_COLUMN,
     UNMAPPED_AFFILIATION_ID_COLUMN,
 )
-from src.mma.network.utils import create_affiliation_links
+from src.mma.network.utils import create_affiliation_links, create_graph_from_links
 from src.mma.utils.utils import (
-    filter_links_by_country,
     get_affiliation_id_map,
     get_articles_per_author,
     validate_country_code,
 )
-from src.mma.utils.wrappers import get_execution_time
+from src.mma.utils.wrappers import get_execution_time, parallelize_dataframe
 
 _logger = structlog.getLogger()
 
@@ -42,7 +41,7 @@ def _get_parent_id(
 
 def _get_parent_affiliation_idx(
     affiliation_id: str,
-    affiliation_map: Dict[np.int64, np.int64] = None,
+    affiliation_map: Dict[np.int64, np.int64],
 ) -> Dict[np.int64, np.int64]:
     """
     Determines the parent affiliation indexes.
@@ -58,7 +57,7 @@ def _get_parent_affiliation_idx(
 
 def _get_parent_affiliation_id(
     affiliation_id: str,
-    affiliation_map: Dict[np.int64, np.int64] = None,
+    affiliation_map: Dict[np.int64, np.int64],
 ) -> Union[List[np.int64], Dict[np.int64, np.int64]]:
     """
     Determines the parent affiliation IDs.
@@ -73,9 +72,9 @@ def _get_parent_affiliation_id(
     return list(np.array(sorted_ids).astype(np.int64))
 
 
-def _apply_parent_affiliation_id_and_idx(
+def apply_parent_affiliation_id_and_idx(
     article_author_df: pd.DataFrame, affiliation_map: Dict[np.int64, np.int64]
-):
+) -> pd.DataFrame:
     """
     Determine the parent affiliation IDs for each author and update the corresponding columns.
 
@@ -92,6 +91,8 @@ def _apply_parent_affiliation_id_and_idx(
         None. The function modifies `article_author_df` in place.
     """
 
+    article_author_df = article_author_df.copy()
+
     aff_col = ARTICLE_AFFILIATION_ID_COLUMN
     idx_col = ARTICLE_AFFILIATION_INDEX_COLUMN
     unmapped_col = UNMAPPED_AFFILIATION_ID_COLUMN
@@ -106,16 +107,20 @@ def _apply_parent_affiliation_id_and_idx(
     # get parent affiliation id and parent affiliation id idx
     article_author_df[idx_col] = article_author_df[aff_col].apply(get_parent_idx)
     article_author_df[aff_col] = article_author_df[aff_col].apply(get_parent)
+    return article_author_df
 
 
 @dataclass
 class AffiliationNetworkProcessor:
     article_df: pd.DataFrame
     affiliation_gdf: gpd.GeoDataFrame
+    country_filter: Optional[str] = None
+    _link_gdf: Optional[gpd.GeoDataFrame] = None
+    _article_author_df: pd.DataFrame = field(init=False, default=None)
     _affiliation_map: Optional[Dict[np.int64, np.int64]] = field(init=False, default=None)
 
     """
-   Processes article-author-affiliation data to generate affiliation link GeoDataFrames.
+    Processes article-author-affiliation data to generate affiliation link GeoDataFrames.
 
     This class handles authors with multiple affiliations and creates all possible
     unique links between their affiliations. Affiliation attributes, including geometries,
@@ -127,11 +132,21 @@ class AffiliationNetworkProcessor:
     """
 
     def __post_init__(self) -> None:
-        # compute the map after dataclass has been initialized
+
+        validate_country_code(code=self.country_filter)
+
         self._affiliation_map = get_affiliation_id_map(affiliation_gdf=self.affiliation_gdf)
 
+        self._article_author_df = get_articles_per_author(article_df=self.article_df)
+
+        self._article_author_df = parallelize_dataframe(
+            input_function=apply_parent_affiliation_id_and_idx,
+            gdf=self._article_author_df,
+            affiliation_map=self._affiliation_map,
+        )
+
     @get_execution_time
-    def get_affiliation_links(self, country_filter: Optional[str] = None) -> gpd.GeoDataFrame:
+    def get_affiliation_links(self) -> gpd.GeoDataFrame:
         """
         Creates a GeoDataFrame with all unique link combinations for authors with multiple
         affiliations.
@@ -142,24 +157,43 @@ class AffiliationNetworkProcessor:
         Affiliation information, including geometry, is merged into the link DataFrame, resulting in
         a GeoDataFrame with line geometries representing each link.
 
-        :param country_filter: Optional ISO3 country code to filter links by country.
         :return: A GeoDataFrame containing links between affiliations, with a line geometry for each
                  link.
         """
 
-        validate_country_code(code=country_filter)
+        self._create_affiliation_links()
 
-        article_author_df = get_articles_per_author(article_df=self.article_df)
+        return self._link_gdf
 
-        _apply_parent_affiliation_id_and_idx(
-            article_author_df=article_author_df, affiliation_map=self._affiliation_map
-        )
+    def get_affiliation_networkx_graph(self, min_weight: Optional[int] = None) -> gpd.GeoDataFrame:
+        """
+        Creates an affiliation network graph from a GeoDataFrame of links between nodes
+        (affiliations).
 
-        link_gdf = create_affiliation_links(
-            affiliation_gdf=self.affiliation_gdf, article_author_df=article_author_df
-        )
+        This function aggregates link data between pairs of nodes (`from_node`, `to_node`), computes
+        the connection strength for each (source, target) pair, and returns a weighted NetworkX
+        graph. Optionally, weak connections (below a given weight threshold) can be filtered out.
 
-        if country_filter is not None:
-            link_gdf = filter_links_by_country(link_gdf=link_gdf, country_filter=country_filter)
+        :param min_weight: The minimum link strength to retain. Edges with lower weights are removed
+                          from the graph. If ``None``, all edges are included.
 
-        return link_gdf
+        :return: A weighted, undirected NetworkX graph where:
+
+           - **Nodes** represent affiliations.
+           - **Edges** connect affiliations based on authors with multiple affiliations.
+           - **Edge weights** correspond to the strength or frequency of those links.
+        """
+
+        # Generate links between affiliations if not cached
+        self._create_affiliation_links()
+
+        edge_graph = create_graph_from_links(link_gdf=self._link_gdf, min_weight=min_weight)
+        return edge_graph
+
+    def _create_affiliation_links(self) -> None:
+        if self._link_gdf is None:
+            self._link_gdf = create_affiliation_links(
+                affiliation_gdf=self.affiliation_gdf,
+                article_author_df=self._article_author_df,
+                country_filter=self.country_filter,
+            )

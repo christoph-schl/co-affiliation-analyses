@@ -6,6 +6,7 @@ import pandas as pd
 import pycountry
 
 import src.mma.constants as constants
+from src.mma.utils.wrappers import get_execution_time
 
 _ARTICLE_ID_COLUMN = "article_id"
 _ARTICLE_AUTHOR_ID_COLUMN = "author_ids"
@@ -14,6 +15,7 @@ _AUTHOR_SEPARATOR = ";"
 ISO3_CODES = [country.alpha_3 for country in pycountry.countries]
 
 
+@get_execution_time
 def get_articles_per_author(article_df: pd.DataFrame) -> pd.DataFrame:
     """
     Explodes the dataframe to get the articles for each author.
@@ -76,7 +78,7 @@ def get_affiliation_id_map(
     return df_parent.set_index(id_col)[parent_col].to_dict()
 
 
-def validate_country_code(code: str) -> str:
+def validate_country_code(code: Optional[str] = None) -> None:
     """
     Validate that a given ISO-3 country code exists.
 
@@ -84,12 +86,15 @@ def validate_country_code(code: str) -> str:
     :return: The uppercase valid ISO-3 country code.
     :raises ValueError: If the provided code is not a valid ISO-3 country code.
     """
-    code = code.strip().upper()
-    if code not in ISO3_CODES:
-        raise ValueError(
-            f"Invalid country code '{code}'. " f"Must be one of {len(ISO3_CODES)} valid ISO3 codes."
-        )
-    return code
+
+    if code is not None:
+        code = code.strip().upper()
+        if code not in ISO3_CODES:
+            raise ValueError(
+                f"Invalid country code '{code}'. "
+                f"Must be one of {len(ISO3_CODES)} valid ISO3 "
+                f"codes."
+            )
 
 
 def filter_links_by_country(link_gdf: gpd.GeoDataFrame, country_filter: str) -> gpd.GeoDataFrame:

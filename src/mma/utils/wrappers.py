@@ -4,9 +4,9 @@ import traceback  # To get detailed error messages
 from concurrent.futures import ProcessPoolExecutor
 from math import ceil
 from time import time
-from typing import Any, Callable, List, Optional, TypeVar
+from typing import Any, Callable, List, Optional, TypeVar, Union
 
-import numpy as np
+import geopandas as gpd
 import pandas as pd
 import structlog
 from tqdm import tqdm
@@ -47,6 +47,7 @@ def gdf_list_process_pool_executor(
     split_gdf: List[pd.DataFrame],
     max_workers: int = DEFAULT_MAX_WORKERS_PARALLEL_PROCESSING,
     reset_index: bool = True,
+    verbose: bool = False,
     **kwargs: Any,
 ) -> pd.DataFrame:
     """
@@ -60,6 +61,7 @@ def gdf_list_process_pool_executor(
         :param reset_index: If "true", the index of the merged GeoDataFrames is reset
         :param kwargs: The Keyword Arguments
         :param max_workers: Maximum number of parallel processes to use in the ProcessPoolExecutor
+        :param verbose: Shows a progress bar, if true
 
     :return:
         The processed and merged GeoDataFrame
@@ -71,9 +73,9 @@ def gdf_list_process_pool_executor(
 
         result = {executor.submit(input_function, gdf, **kwargs): gdf for gdf in split_gdf}
         gdf_list = []
-        for future in tqdm(concurrent.futures.as_completed(result), total=len(split_gdf)):
-            # for future in result:
-            # gdf_list.append(future.result())
+        for future in tqdm(
+            concurrent.futures.as_completed(result), total=len(split_gdf), disable=not verbose
+        ):
             try:
                 gdf_list.append(future.result())
             except Exception as e:
@@ -92,6 +94,7 @@ def parallelize_dataframe(
     gdf: pd.DataFrame,
     max_workers: int = DEFAULT_MAX_WORKERS_PARALLEL_PROCESSING,
     chunk_size: int = CHUNK_SIZE_PARALLEL_PROCESSING,
+    verbose: bool = False,
     **kwargs: Any,
 ) -> pd.DataFrame:
     """
@@ -111,6 +114,7 @@ def parallelize_dataframe(
         :param kwargs: The Keyword Arguments
         :param max_workers: Maximum number of parallel processes to use in the ProcessPoolExecutor
         :param chunk_size: The chunk size for parallel processing
+        :param verbose: Shows a process bar, if true
 
     :return:
         The processed and merged GeoDataFrame
@@ -127,7 +131,11 @@ def parallelize_dataframe(
             index_column=_GDF_INDEX_COLUMN_NAME,
         )
         output_gdf = gdf_list_process_pool_executor(
-            input_function, split_gdf=split_gdf_list, max_workers=max_workers, **kwargs
+            input_function,
+            split_gdf=split_gdf_list,
+            max_workers=max_workers,
+            verbose=verbose,
+            **kwargs,
         )
         if len(output_gdf) > 0:
             output_gdf = output_gdf.reset_index(drop=True)
@@ -146,6 +154,15 @@ def parallelize_dataframe(
     return output_gdf
 
 
+def _split_dataframe(
+    df: Union[pd.DataFrame, gpd.GeoDataFrame], chunks: int
+) -> List[Union[pd.DataFrame, gpd.GeoDataFrame]]:
+    n = len(df)
+    chunk_size = n // chunks + (n % chunks > 0)
+    df_list = [df.iloc[i : i + chunk_size] for i in range(0, n, chunk_size)]  # noqa: E203
+    return df_list
+
+
 def df_split(
     df: pd.DataFrame, chunks: int, index_column: Optional[str] = None
 ) -> List[pd.DataFrame]:
@@ -162,5 +179,8 @@ def df_split(
         chunks = 1
     if index_column is not None:
         df[index_column] = df.index.values
-    df_list: List[pd.DataFrame] = [df for df in np.array_split(df, chunks) if len(df) > 0]
+    # df_list: List[pd.DataFrame] = [df for df in np.array_split(df, chunks) if len(df) > 0]
+
+    df_list = [chunk for chunk in _split_dataframe(df, chunks) if len(chunk) > 0]
+
     return df_list
