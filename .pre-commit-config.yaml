@@ -24,7 +24,8 @@ repos:
     rev: 25.9.0
     hooks:
       - id: black
-        language_version: python3 # Should be a command that runs python3.6+
+        language_version: python3
+        args: ["--line-length=100"]
 
 
 -   repo: https://github.com/pre-commit/mirrors-mypy
