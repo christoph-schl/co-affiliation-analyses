@@ -5,6 +5,7 @@ from typing import Dict, List, Optional, Union
 import geopandas as gpd
 import numpy as np
 import pandas as pd
+import pandera.pandas as pa
 import structlog
 
 from src.mma.constants import (
@@ -12,6 +13,8 @@ from src.mma.constants import (
     ARTICLE_AFFILIATION_INDEX_COLUMN,
     UNMAPPED_AFFILIATION_ID_COLUMN,
 )
+from src.mma.dataframe.models.affiliation import AffiliationSchema
+from src.mma.dataframe.models.article import ArticleSchema
 from src.mma.network.utils import create_affiliation_links, create_graph_from_links
 from src.mma.utils.utils import (
     get_affiliation_id_map,
@@ -110,6 +113,8 @@ def apply_parent_affiliation_id_and_idx(
     return article_author_df
 
 
+@pa.check_input(ArticleSchema, "article_df")
+@pa.check_input(AffiliationSchema, "affiliation_gdf")
 @dataclass
 class AffiliationNetworkProcessor:
     article_df: pd.DataFrame
