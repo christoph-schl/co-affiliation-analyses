@@ -5,7 +5,6 @@ from typing import Dict, List, Optional, Union
 import geopandas as gpd
 import numpy as np
 import pandas as pd
-import pandera.pandas as pa
 import structlog
 
 from src.mma.constants import (
@@ -113,8 +112,8 @@ def apply_parent_affiliation_id_and_idx(
     return article_author_df
 
 
-@pa.check_input(ArticleSchema, "article_df")
-@pa.check_input(AffiliationSchema, "affiliation_gdf")
+# @pa.check_input(ArticleSchema, "article_df")
+# @pa.check_input(AffiliationSchema, "affiliation_gdf")
 @dataclass
 class AffiliationNetworkProcessor:
     article_df: pd.DataFrame
@@ -140,15 +139,21 @@ class AffiliationNetworkProcessor:
 
         validate_country_code(code=self.country_filter)
 
+        self._validate_input_dataframes()
+
         self._affiliation_map = get_affiliation_id_map(affiliation_gdf=self.affiliation_gdf)
 
         self._article_author_df = get_articles_per_author(article_df=self.article_df)
 
         self._article_author_df = parallelize_dataframe(
             input_function=apply_parent_affiliation_id_and_idx,
-            gdf=self._article_author_df,
+            df=self._article_author_df,
             affiliation_map=self._affiliation_map,
         )
+
+    def _validate_input_dataframes(self) -> None:
+        self.article_df = ArticleSchema.validate(self.article_df)
+        self.affiliation_gdf = AffiliationSchema.validate(self.affiliation_gdf)
 
     @get_execution_time
     def get_affiliation_links(self) -> gpd.GeoDataFrame:

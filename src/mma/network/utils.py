@@ -22,14 +22,15 @@ from src.mma.constants import (
     TO_NODE_COLUMN,
     WGS84_EPSG,
 )
-from src.mma.utils.geo_tools import create_line_geom
+from src.mma.utils.geo_tools import create_line_geometries
 from src.mma.utils.utils import filter_links_by_country
-from src.mma.utils.wrappers import get_execution_time
+from src.mma.utils.wrappers import get_execution_time, parallelize_dataframe
 
 _logger = structlog.getLogger()
 
 _EDGE_COLUMN = "edge"
 _NO_DATA_STRING = "nodata"
+_CHUNK_SIZE_PARALLEL_PROCESSING = 2000
 
 
 def _get_combination_list(input_list: List[int]) -> List[Tuple[int, int]]:
@@ -119,9 +120,7 @@ def _create_link_df(article_author_df: pd.DataFrame) -> pd.DataFrame:
     return link_df
 
 
-def _create_link_gdf(
-    link_df: pd.DataFrame, affiliation_gdf: gpd.GeoDataFrame, verbose: bool = True
-) -> gpd.GeoDataFrame:
+def _create_link_gdf(link_df: pd.DataFrame, affiliation_gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     """
     Creates a GeoDataFrame of links by merging affiliation attributes, including geometry,
     to the link DataFrame.
@@ -137,6 +136,10 @@ def _create_link_gdf(
     :return: A GeoDataFrame representing links between affiliations, with line geometries for each
              link.
     """
+    if link_df.empty:
+        _logger.warning("Input link DataFrame is empty. No geometries to process.")
+        return link_df
+
     link_df = pd.merge(
         left=link_df,
         right=affiliation_gdf,
@@ -152,22 +155,26 @@ def _create_link_gdf(
         how="left",
         suffixes=("", "_to"),
     ).reset_index(drop=True)
-    if not link_df.empty:
-        link_df[GEOMETRY_COLUMN] = link_df.apply(
-            lambda x: create_line_geom(point_a=x.geometry, point_b=x.geometry_to), axis=1
+
+    geom_cols = [GEOMETRY_COLUMN, f"{GEOMETRY_COLUMN}_to"]
+
+    n_links = len(link_df)
+    link_df = parallelize_dataframe(
+        input_function=create_line_geometries,
+        df=link_df,
+        geometry_columns=geom_cols,
+        drop_invalid_geoms=True,
+        chunk_size=_CHUNK_SIZE_PARALLEL_PROCESSING,
+    )
+    n_dropped = n_links - len(link_df)
+    if n_dropped > 0:
+        _logger.warning(
+            f"Dropped {n_dropped} affiliation link(s) from the DataFrame with no " f"coordinates."
         )
 
-        # Count how many rows will be dropped (those with missing geometry)
-        n_dropped = link_df[GEOMETRY_COLUMN].isna().sum()
-
-        link_df = link_df.dropna(subset=[GEOMETRY_COLUMN]).reset_index(drop=True)
-        if verbose:
-            if n_dropped > 0:
-                _logger.warning(f"Dropped {n_dropped} affiliation links(s) with no coordinates.")
-
-        link_df = link_df.drop(columns=[f"{GEOMETRY_COLUMN}_to"], axis=1)
-        link_df = gpd.GeoDataFrame(link_df, crs=WGS84_EPSG)
-    return link_df
+    link_df = link_df.drop(columns=[f"{GEOMETRY_COLUMN}_to"], axis=1)
+    link_gdf = gpd.GeoDataFrame(link_df, crs=WGS84_EPSG)
+    return link_gdf
 
 
 @get_execution_time
@@ -175,7 +182,6 @@ def create_affiliation_links(
     article_author_df: pd.DataFrame,
     affiliation_gdf: gpd.GeoDataFrame,
     country_filter: Optional[str] = None,
-    verbose: bool = True,
 ) -> gpd.GeoDataFrame:
     """
     Creates a GeoDataFrame with all unique link combinations for authors with multiple
@@ -193,7 +199,7 @@ def create_affiliation_links(
 
     multi_affiliation_df = _filter_multi_affiliation(article_author_df=article_author_df)
     link_df = _create_link_df(article_author_df=multi_affiliation_df)
-    link_gdf = _create_link_gdf(affiliation_gdf=affiliation_gdf, link_df=link_df, verbose=verbose)
+    link_gdf = _create_link_gdf(affiliation_gdf=affiliation_gdf, link_df=link_df)
 
     if country_filter is not None:
         link_gdf = filter_links_by_country(link_gdf=link_gdf, country_filter=country_filter)
