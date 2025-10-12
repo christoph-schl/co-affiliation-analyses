@@ -20,7 +20,7 @@ from src.mma.constants import (
 _logger = structlog.getLogger()
 
 R = TypeVar("R")
-_GDF_INDEX_COLUMN_NAME = "_parallel_gdf_index"
+_DF_INDEX_COLUMN_NAME = "_parallel_gdf_index"
 
 
 def get_execution_time(input_function: Callable[..., R]) -> Callable[..., R]:
@@ -44,12 +44,12 @@ def get_execution_time(input_function: Callable[..., R]) -> Callable[..., R]:
 
 def gdf_list_process_pool_executor(
     input_function: Callable[..., R],
-    split_gdf: List[pd.DataFrame],
+    split_df: List[Union[pd.DataFrame, gpd.GeoDataFrame]],
     max_workers: int = DEFAULT_MAX_WORKERS_PARALLEL_PROCESSING,
     reset_index: bool = True,
     verbose: bool = False,
     **kwargs: Any,
-) -> pd.DataFrame:
+) -> Union[pd.DataFrame, gpd.GeoDataFrame]:
     """
     Generic wrapper function to parallelize the processing of a list with split GeoDataFrames with
     the given function and its arguments using ProcessPoolExecutor
@@ -57,7 +57,7 @@ def gdf_list_process_pool_executor(
     Args:
         :param input_function: The function to be executed in parallel. This function should take
         arguments as positional arguments
-        :param split_gdf: The list with split GeoDataFrames
+        :param split_df: The list with split GeoDataFrames
         :param reset_index: If "true", the index of the merged GeoDataFrames is reset
         :param kwargs: The Keyword Arguments
         :param max_workers: Maximum number of parallel processes to use in the ProcessPoolExecutor
@@ -71,27 +71,27 @@ def gdf_list_process_pool_executor(
         # start the input function with the given GeoDataFrame and keyword arguments and mark each
         # future object with its processed GeoDataFrame
 
-        result = {executor.submit(input_function, gdf, **kwargs): gdf for gdf in split_gdf}
-        gdf_list = []
+        result = {executor.submit(input_function, df, **kwargs): df for df in split_df}
+        df_list = []
         for future in tqdm(
-            concurrent.futures.as_completed(result), total=len(split_gdf), disable=not verbose
+            concurrent.futures.as_completed(result), total=len(split_df), disable=not verbose
         ):
             try:
-                gdf_list.append(future.result())
+                df_list.append(future.result())
             except Exception as e:
                 print(f"Error processing GeoDataFrame at index: {e}")
                 traceback.print_exc()  # Print full error details for debugging
 
-    output_gdf = pd.concat(gdf_list)
+    output_df = pd.concat(df_list)
     if reset_index:
-        output_gdf.reset_index(drop=True, inplace=True)
+        output_df.reset_index(drop=True, inplace=True)
 
-    return output_gdf
+    return output_df
 
 
 def parallelize_dataframe(
     input_function: Callable[..., R],
-    gdf: pd.DataFrame,
+    df: Union[pd.DataFrame, gpd.GeoDataFrame],
     max_workers: int = DEFAULT_MAX_WORKERS_PARALLEL_PROCESSING,
     chunk_size: int = CHUNK_SIZE_PARALLEL_PROCESSING,
     verbose: bool = False,
@@ -110,7 +110,7 @@ def parallelize_dataframe(
     Args:
         :param input_function: The function to be executed in parallel. This function should take
         arguments as positional arguments
-        :param gdf: The GeoDataFrame
+        :param df: The DataFrame or GeoDataFrame
         :param kwargs: The Keyword Arguments
         :param max_workers: Maximum number of parallel processes to use in the ProcessPoolExecutor
         :param chunk_size: The chunk size for parallel processing
@@ -120,38 +120,36 @@ def parallelize_dataframe(
         The processed and merged GeoDataFrame
     """
 
-    if gdf.empty:
-        return gdf
+    if df.empty:
+        return df
 
-    number_of_chunks = ceil(len(gdf) / chunk_size)
+    number_of_chunks = ceil(len(df) / chunk_size)
     if max_workers > 1 and number_of_chunks > 2:
         split_gdf_list = df_split(
-            df=gdf,
-            chunks=int(len(gdf) / chunk_size),
-            index_column=_GDF_INDEX_COLUMN_NAME,
+            df=df,
+            chunks=int(len(df) / chunk_size),
+            index_column=_DF_INDEX_COLUMN_NAME,
         )
-        output_gdf = gdf_list_process_pool_executor(
+        output_df = gdf_list_process_pool_executor(
             input_function,
-            split_gdf=split_gdf_list,
+            split_df=split_gdf_list,
             max_workers=max_workers,
             verbose=verbose,
             **kwargs,
         )
-        if len(output_gdf) > 0:
-            output_gdf = output_gdf.reset_index(drop=True)
-            if _GDF_INDEX_COLUMN_NAME in output_gdf.columns:
-                output_gdf = output_gdf.set_index(output_gdf[_GDF_INDEX_COLUMN_NAME]).sort_index()
-                output_gdf = output_gdf.drop(
-                    columns=[_GDF_INDEX_COLUMN_NAME], errors="ignore"
-                ).copy()
-            return output_gdf
+        if len(output_df) > 0:
+            output_df = output_df.reset_index(drop=True)
+            if _DF_INDEX_COLUMN_NAME in output_df.columns:
+                output_df = output_df.set_index(output_df[_DF_INDEX_COLUMN_NAME]).sort_index()
+                output_df = output_df.drop(columns=[_DF_INDEX_COLUMN_NAME], errors="ignore").copy()
+            return output_df
     else:
         # execute func directly without splitting the Dataframe and using the process pool executor
-        output_gdf = input_function(gdf, **kwargs)
-        return output_gdf
+        output_df = input_function(df, **kwargs)
+        return output_df
 
-    output_gdf = gdf[0:0]
-    return output_gdf
+    output_df = df[0:0]
+    return output_df
 
 
 def _split_dataframe(
