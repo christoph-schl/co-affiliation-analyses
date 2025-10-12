@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field
+from dataclasses import InitVar, dataclass, field
 from functools import partial
 from typing import Dict, List, Optional, Union
 
@@ -112,13 +112,19 @@ def apply_parent_affiliation_id_and_idx(
     return article_author_df
 
 
-# @pa.check_input(ArticleSchema, "article_df")
-# @pa.check_input(AffiliationSchema, "affiliation_gdf")
 @dataclass
 class AffiliationNetworkProcessor:
-    article_df: pd.DataFrame
-    affiliation_gdf: gpd.GeoDataFrame
+
+    # source inputs (optional if link_gdf is provided)
+    article_df: Optional[pd.DataFrame] = None
+    affiliation_gdf: Optional[gpd.GeoDataFrame] = None
+
+    # optional country filter
     country_filter: Optional[str] = None
+
+    # accept an initial link_gdf at init time but don't bind it directly as a field
+    link_gdf: InitVar[Optional[gpd.GeoDataFrame]] = None
+
     _link_gdf: Optional[gpd.GeoDataFrame] = None
     _article_author_df: pd.DataFrame = field(init=False, default=None)
     _affiliation_map: Optional[Dict[np.int64, np.int64]] = field(init=False, default=None)
@@ -135,9 +141,19 @@ class AffiliationNetworkProcessor:
 
     """
 
-    def __post_init__(self) -> None:
+    def __post_init__(self, link_gdf: Optional[gpd.GeoDataFrame]) -> None:
 
         validate_country_code(code=self.country_filter)
+
+        if link_gdf is not None:
+            self._link_gdf = link_gdf
+            # do not prepare article/affiliation derived structures — we can skip expensive work
+            return
+
+        if self.article_df is None or self.affiliation_gdf is None:
+            raise ValueError(
+                "Either provide `link_gdf` or both `article_df` and `affiliation_gdf`."
+            )
 
         self._validate_input_dataframes()
 
