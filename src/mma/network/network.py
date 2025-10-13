@@ -14,7 +14,11 @@ from src.mma.constants import (
 )
 from src.mma.dataframe.models.affiliation import AffiliationSchema
 from src.mma.dataframe.models.article import ArticleSchema
-from src.mma.network.utils import create_affiliation_links, create_graph_from_links
+from src.mma.network.utils import (
+    Edge,
+    create_affiliation_links,
+    create_graph_from_links,
+)
 from src.mma.utils.utils import (
     get_affiliation_id_map,
     get_articles_per_author,
@@ -114,6 +118,34 @@ def apply_parent_affiliation_id_and_idx(
 
 @dataclass
 class AffiliationNetworkProcessor:
+    """
+    Processes article-author-affiliation data to generate affiliation link GeoDataFrames.
+
+    This class handles authors with multiple affiliations and creates all possible
+    unique links between their affiliations. Affiliation attributes, including geometries,
+    are merged to produce a GeoDataFrame where each row represents a link between two
+    affiliations with an associated line geometry. Optionally, the links can be filtered
+    by ISO3 country codes. The resulting data can also be used to construct a networkx-compatible
+    network for further network analysis.
+
+    Attributes
+    ----------
+    article_df : pandas.DataFrame, optional
+        Source articles DataFrame validated with `ArticleSchema`.
+        Required if `link_gdf` is not supplied.
+
+    affiliation_gdf : geopandas.GeoDataFrame
+        Source affiliations GeoDataFrame validated with `AffiliationSchema`.
+
+    country_filter : str, optional
+        ISO3 country filter applied when generating links.
+        Defaults to ``None`` (no filter).
+
+    link_gdf : geopandas.GeoDataFrame, optional
+        GeoDataFrame containing links between affiliations, each represented by a line geometry.
+        Can be provided to avoid expensive computations.
+
+    """
 
     # source inputs (optional if link_gdf is provided)
     article_df: Optional[pd.DataFrame] = None
@@ -126,20 +158,10 @@ class AffiliationNetworkProcessor:
     link_gdf: InitVar[Optional[gpd.GeoDataFrame]] = None
 
     _link_gdf: Optional[gpd.GeoDataFrame] = None
+    _edge_graph: Optional[Edge] = None
+    _min_edge_weight: Optional[int] = 0
     _article_author_df: pd.DataFrame = field(init=False, default=None)
     _affiliation_map: Optional[Dict[np.int64, np.int64]] = field(init=False, default=None)
-
-    """
-    Processes article-author-affiliation data to generate affiliation link GeoDataFrames.
-
-    This class handles authors with multiple affiliations and creates all possible
-    unique links between their affiliations. Affiliation attributes, including geometries,
-    are merged to produce a GeoDataFrame where each row represents a link between two
-    affiliations with an associated line geometry. Optionally, the links can be filtered
-    by ISO3 country codes. The resulting data can also be used to construct a networkx-compatible
-    network for further network analysis.
-
-    """
 
     def __post_init__(self, link_gdf: Optional[gpd.GeoDataFrame]) -> None:
 
@@ -152,7 +174,7 @@ class AffiliationNetworkProcessor:
 
         if self.article_df is None or self.affiliation_gdf is None:
             raise ValueError(
-                "Either provide `link_gdf` or both `article_df` and `affiliation_gdf`."
+                "Either provide both `article_df` and `affiliation_gdf` or `link_gdf`."
             )
 
         self._validate_input_dataframes()
@@ -166,6 +188,18 @@ class AffiliationNetworkProcessor:
             df=self._article_author_df,
             affiliation_map=self._affiliation_map,
         )
+
+    @property
+    def min_edge_weight(self) -> Optional[int]:
+        return self._min_edge_weight
+
+    @min_edge_weight.setter
+    def min_edge_weight(self, value: int) -> None:
+        if not isinstance(value, int):
+            raise ValueError("min_edge_weight must be an integer")
+        if value < 0:
+            raise ValueError("min_edge_weight must be non-negative")
+        self._min_edge_weight = value
 
     def _validate_input_dataframes(self) -> None:
         self.article_df = ArticleSchema.validate(self.article_df)
@@ -191,7 +225,7 @@ class AffiliationNetworkProcessor:
 
         return self._link_gdf
 
-    def get_affiliation_networkx_graph(self, min_weight: Optional[int] = None) -> gpd.GeoDataFrame:
+    def get_affiliation_graph(self, min_edge_weight: Optional[int] = None) -> gpd.GeoDataFrame:
         """
         Creates an affiliation network graph from a GeoDataFrame of links between nodes
         (affiliations).
@@ -200,8 +234,8 @@ class AffiliationNetworkProcessor:
         the connection strength for each (source, target) pair, and returns a weighted NetworkX
         graph. Optionally, weak connections (below a given weight threshold) can be filtered out.
 
-        :param min_weight: The minimum link strength to retain. Edges with lower weights are removed
-                          from the graph. If ``None``, all edges are included.
+        :param min_edge_weight: The minimum link strength to retain. Edges with lower weights are
+                                removed from the graph. If ``None``, all edges are included.
 
         :return: A weighted, undirected NetworkX graph where:
 
@@ -210,11 +244,8 @@ class AffiliationNetworkProcessor:
            - **Edge weights** correspond to the strength or frequency of those links.
         """
 
-        # Generate links between affiliations if not cached
-        self._create_affiliation_links()
-
-        edge_graph = create_graph_from_links(link_gdf=self._link_gdf, min_weight=min_weight)
-        return edge_graph
+        self._create_affiliation_graph(min_edge_weight=min_edge_weight)
+        return self._edge_graph
 
     def _create_affiliation_links(self) -> None:
         if self._link_gdf is None:
@@ -222,4 +253,17 @@ class AffiliationNetworkProcessor:
                 affiliation_gdf=self.affiliation_gdf,
                 article_author_df=self._article_author_df,
                 country_filter=self.country_filter,
+            )
+
+    def _create_affiliation_graph(self, min_edge_weight: Optional[int] = None) -> None:
+
+        if min_edge_weight is not None:
+            self.min_edge_weight = min_edge_weight
+
+        # generate links between affiliations if not cached
+        self._create_affiliation_links()
+
+        if self._edge_graph is None:
+            self._edge_graph = create_graph_from_links(
+                link_gdf=self._link_gdf, min_weight=self.min_edge_weight
             )

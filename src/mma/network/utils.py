@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from itertools import combinations
 from typing import List, Optional, Tuple
 
@@ -33,14 +34,14 @@ _NO_DATA_STRING = "nodata"
 _CHUNK_SIZE_PARALLEL_PROCESSING = 2000
 
 
-def _get_combination_list(input_list: List[int]) -> List[Tuple[int, int]]:
+def get_combination_list(input_list: List[int]) -> List[Tuple[int, int]]:
     combination_list = [(min(a, b), max(a, b)) for a, b in combinations(input_list, 2)]
     return list(np.asarray(combination_list, dtype=np.int64))
 
 
 def _generate_edges(row: pd.Series) -> List[Tuple[int, int]]:
     nodes = list(map(np.int64, row.split("-")))  # Convert to int64
-    return _get_combination_list(input_list=nodes)
+    return get_combination_list(input_list=nodes)
 
 
 def _apply_affiliation_idx_mapping(
@@ -99,7 +100,7 @@ def _create_link_df(article_author_df: pd.DataFrame) -> pd.DataFrame:
     link_df = article_author_df.copy()
 
     # create edge combinations and the affiliation-index mapping
-    link_df[_EDGE_COLUMN] = link_df[ARTICLE_AFFILIATION_ID_COLUMN].apply(_get_combination_list)
+    link_df[_EDGE_COLUMN] = link_df[ARTICLE_AFFILIATION_ID_COLUMN].apply(get_combination_list)
     link_df[ARTICLE_AFFILIATION_INDEX_COLUMN] = _apply_affiliation_idx_mapping(df=link_df)
     link_df = link_df.explode(
         column=[_EDGE_COLUMN, ARTICLE_AFFILIATION_INDEX_COLUMN], ignore_index=True
@@ -172,7 +173,10 @@ def _create_link_gdf(link_df: pd.DataFrame, affiliation_gdf: gpd.GeoDataFrame) -
             f"Dropped {n_dropped} affiliation link(s) from the DataFrame with no " f"coordinates."
         )
 
-    link_df = link_df.drop(columns=[f"{GEOMETRY_COLUMN}_to"], axis=1)
+    link_df = link_df.drop(
+        columns=[f"{GEOMETRY_COLUMN}_to", AFFILIATION_ID_COLUMN, f"{AFFILIATION_ID_COLUMN}_to"],
+        axis=1,
+    )
     link_gdf = gpd.GeoDataFrame(link_df, crs=WGS84_EPSG)
     return link_gdf
 
@@ -249,10 +253,20 @@ def compute_edge_strengths(link_gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     return edge_gdf
 
 
+@dataclass
+class Edge:
+    """
+    Dataclass contains edges as pandas DataFrame and as weighted networkx graph
+    """
+
+    df: pd.DataFrame
+    graph: Graph
+
+
 @get_execution_time
 def create_graph_from_links(
     link_gdf: gpd.GeoDataFrame,
-    min_weight: Optional[int] = None,
+    min_weight: int = 0,
 ) -> nx.Graph:
     """
     Creates an affiliation network graph from a GeoDataFrame of links between nodes (affiliations).
@@ -265,7 +279,7 @@ def create_graph_from_links(
     :param min_weight: The minimum link strength to retain. Edges with lower weights are removed
                        from the graph. If ``None``, all edges are included.
 
-    :return: A weighted, undirected NetworkX graph where:
+    :return: A pandas DataFrame and a weighted, undirected NetworkX graph where:
 
         - **Nodes** represent affiliations.
         - **Edges** connect affiliations based on authors with multiple affiliations.
@@ -296,4 +310,6 @@ def create_graph_from_links(
         weight_column=AFFILIATION_EDGE_COUNT_COLUMN,
     )
 
-    return affiliation_graph
+    edge_output = Edge(df=edge_gdf, graph=affiliation_graph)
+
+    return edge_output
