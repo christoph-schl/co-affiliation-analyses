@@ -225,7 +225,7 @@ class AffiliationNetworkProcessor:
 
         return self._link_gdf
 
-    def get_affiliation_graph(self, min_edge_weight: Optional[int] = None) -> gpd.GeoDataFrame:
+    def get_affiliation_graph(self, min_edge_weight: Optional[int] = None) -> Optional[Edge]:
         """
         Creates an affiliation network graph from a GeoDataFrame of links between nodes
         (affiliations).
