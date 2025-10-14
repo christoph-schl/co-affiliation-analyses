@@ -15,6 +15,7 @@ from src.mma.constants import (
     ARTICLE_AFFILIATION_COUNT_COLUMN,
     ARTICLE_AFFILIATION_ID_COLUMN,
     ARTICLE_AFFILIATION_INDEX_COLUMN,
+    ARTICLE_COUNT_COLUMN,
     FROM_AFFILIATION_INDEX_COLUMN,
     FROM_NODE_COLUMN,
     GEOMETRY_COLUMN,
@@ -224,6 +225,7 @@ def _create_graph_from_edges(
     """
 
     G = nx.Graph()
+
     edge_list = list(
         zip(
             edge_gdf[from_node_column],
@@ -267,7 +269,7 @@ class Edge:
 def create_graph_from_links(
     link_gdf: gpd.GeoDataFrame,
     min_weight: int = 0,
-) -> nx.Graph:
+) -> Edge:
     """
     Creates an affiliation network graph from a GeoDataFrame of links between nodes (affiliations).
 
@@ -291,6 +293,7 @@ def create_graph_from_links(
     to_col = f"{PREFERRED_AFFILIATION_NAME_COLUMN}_to"
 
     link_gdf = link_gdf.copy()
+    link_gdf = link_gdf.drop(columns=AFFILIATION_ID_COLUMN, errors="ignore")
 
     # compute aggregated edges
     edge_gdf = compute_edge_strengths(link_gdf=link_gdf)
@@ -305,11 +308,42 @@ def create_graph_from_links(
 
     affiliation_graph = _create_graph_from_edges(
         edge_gdf=edge_gdf,
-        from_node_column=from_col,
-        to_node_column=to_col,
+        from_node_column=FROM_NODE_COLUMN,
+        to_node_column=TO_NODE_COLUMN,
         weight_column=AFFILIATION_EDGE_COUNT_COLUMN,
     )
 
+    edge_gdf = _add_articel_count_to_edges(affiliation_graph=affiliation_graph, edge_gdf=edge_gdf)
     edge_output = Edge(df=edge_gdf, graph=affiliation_graph)
 
     return edge_output
+
+
+def _add_articel_count_to_edges(
+    affiliation_graph: Graph, edge_gdf: gpd.GeoDataFrame
+) -> gpd.GeoDataFrame:
+    weight_sums = {
+        node: sum(data["weight"] for _, _, data in affiliation_graph.edges(node, data=True))
+        for node in affiliation_graph.nodes()
+    }
+    article_count_df = pd.DataFrame(
+        list(weight_sums.items()), columns=[AFFILIATION_ID_COLUMN, ARTICLE_COUNT_COLUMN]
+    )
+    edge_gdf = (
+        edge_gdf.merge(
+            right=article_count_df,
+            left_on=FROM_NODE_COLUMN,
+            right_on=AFFILIATION_ID_COLUMN,
+            how="left",
+        )
+        .merge(
+            right=article_count_df,
+            left_on=TO_NODE_COLUMN,
+            right_on=AFFILIATION_ID_COLUMN,
+            how="left",
+            suffixes=("", "_to"),
+        )
+        .drop(columns=[AFFILIATION_ID_COLUMN, f"{AFFILIATION_ID_COLUMN}_to"], errors="ignore")
+    )
+
+    return edge_gdf
