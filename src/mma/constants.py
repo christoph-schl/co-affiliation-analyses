@@ -34,3 +34,12 @@ TRAVEL_TIME_SEC_COLUMN = "duration_s"
 ARTICLE_COUNT_COLUMN = "article_count"
 LN_PROD_ARTICLE_COUNT_COLUMN = "ln_prod_article_count"
 LN_DURATION_COLUMN = "ln_duration"
+
+# valhalla
+DEFAULT_VALHALLA_BASE_URL = "http://localhost:8002"
+DURATION_S_COLUMN = "duration_s"
+DISTANCE_M_COLUMN = "distance_m"
+
+# routing
+AFFILIATION_ID_FROM_COLUMN = "affiliation_id_from"
+AFFILIATION_ID_TO_COLUMN = "affiliation_id_to"
