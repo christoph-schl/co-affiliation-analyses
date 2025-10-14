@@ -108,12 +108,12 @@ def _apply_proximity_dummy(edge_df: pd.DataFrame) -> pd.DataFrame:
         )
 
 
-def _get_znib_edges(edge_df: pd.DataFrame) -> pd.DataFrame:
+def _get_znib_edges(edge_gdf: gpd.GeoDataFrame) -> pd.DataFrame:
     """
     Build a dataframe of all affiliation-to-affiliation combinations enriched with organisation
     types (for both sides) and the affiliation edge count.
 
-    :param edge_df: The DataFrame containing the edge data.
+    :param edge_gdf: The GeoDataFrame containing the edge data.
     :return: The DataFrame of all affiliation-to-affiliation combinations.
     """
 
@@ -126,10 +126,10 @@ def _get_znib_edges(edge_df: pd.DataFrame) -> pd.DataFrame:
     aff_id = AFFILIATION_ID_COLUMN
 
     # gather unique affiliation ids (from both columns)
-    if edge_df.empty:
+    if edge_gdf.empty:
         unique_affiliations = np.array([], dtype=object)
     else:
-        unique_affiliations = pd.unique(edge_df[[from_col, to_col]].values.ravel())
+        unique_affiliations = pd.unique(edge_gdf[[from_col, to_col]].values.ravel())
 
     # all possible affiliation combinations
     combos = pd.DataFrame(
@@ -137,8 +137,8 @@ def _get_znib_edges(edge_df: pd.DataFrame) -> pd.DataFrame:
     )
 
     # build affiliation -> organisation_type mapping (from both sides)
-    edges_from = edge_df[[from_col, org_col, article_count_col]].rename(columns={from_col: aff_id})
-    edges_to = edge_df[[to_col, f"{org_col}_to", f"{article_count_col}_to"]].rename(
+    edges_from = edge_gdf[[from_col, org_col, article_count_col]].rename(columns={from_col: aff_id})
+    edges_to = edge_gdf[[to_col, f"{org_col}_to", f"{article_count_col}_to"]].rename(
         columns={
             to_col: aff_id,
             f"{org_col}_to": org_col,
@@ -153,7 +153,7 @@ def _get_znib_edges(edge_df: pd.DataFrame) -> pd.DataFrame:
     znib_edges = (
         combos.merge(affiliation_map, left_on=from_col, right_on=aff_id, how="left")
         .merge(affiliation_map, left_on=to_col, right_on=aff_id, how="left", suffixes=("", "_to"))
-        .merge(edge_df[[from_col, to_col, count_col]], on=[from_col, to_col], how="left")
+        .merge(edge_gdf[[from_col, to_col, count_col]], on=[from_col, to_col], how="left")
         .drop(columns=[aff_id, f"{aff_id}_to"])
     )
 
@@ -226,7 +226,7 @@ def create_znib_model_input(edge_gdf: gpd.GeoDataFrame, route_df: pd.DataFrame) 
         ready for input into a ZNIB regression model.
     """
 
-    edges = _get_znib_edges(edge_df=edge_gdf)
+    edges = _get_znib_edges(edge_gdf=edge_gdf)
     edges = _merge_routes_to_edges(edge_df=edges, route_df=route_df)
 
     _apply_proximity_dummy(edge_df=edges)
