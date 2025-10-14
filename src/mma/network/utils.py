@@ -258,10 +258,10 @@ def compute_edge_strengths(link_gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
 @dataclass
 class Edge:
     """
-    Dataclass contains edges as pandas DataFrame and as weighted networkx graph
+    Dataclass contains edges as geopandas GeoDataFrame and as weighted networkx graph
     """
 
-    df: pd.DataFrame
+    gdf: gpd.GeoDataFrame
     graph: Graph
 
 
@@ -314,7 +314,7 @@ def create_graph_from_links(
     )
 
     edge_gdf = _add_articel_count_to_edges(affiliation_graph=affiliation_graph, edge_gdf=edge_gdf)
-    edge_output = Edge(df=edge_gdf, graph=affiliation_graph)
+    edge_output = Edge(gdf=edge_gdf, graph=affiliation_graph)
 
     return edge_output
 

@@ -32,3 +32,5 @@ CHUNK_SIZE_PARALLEL_PROCESSING = 400
 # znib columns
 TRAVEL_TIME_SEC_COLUMN = "duration_s"
 ARTICLE_COUNT_COLUMN = "article_count"
+LN_PROD_ARTICLE_COUNT_COLUMN = "ln_prod_article_count"
+LN_DURATION_COLUMN = "ln_duration"

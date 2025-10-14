@@ -32,6 +32,10 @@ _ARTICLE_ID_COLUMN = "article_id"
 _MULTIPLE_AFFILIATION_SEPARATOR = "-"
 
 
+class MissingEdgeGraphError(RuntimeError):
+    """Raised when an operation requires an edge graph but none is present."""
+
+
 def _get_parent_id(
     affiliation_id: str, affiliation_map: Dict[np.int64, np.int64]
 ) -> List[np.int64]:
@@ -201,6 +205,19 @@ class AffiliationNetworkProcessor:
             raise ValueError("min_edge_weight must be non-negative")
         self._min_edge_weight = value
 
+    @property
+    def edge(self) -> Edge:
+        if self._edge_graph is None:
+            raise MissingEdgeGraphError(
+                "Edge graph is not set. "
+                "Set it when constructing or call `_create_affiliation_graph()` first."
+            )
+        return self._edge_graph
+
+    @edge.setter
+    def edge(self, value: Edge) -> None:
+        self._edge_graph = value
+
     def _validate_input_dataframes(self) -> None:
         self.article_df = ArticleSchema.validate(self.article_df)
         self.affiliation_gdf = AffiliationSchema.validate(self.affiliation_gdf)
@@ -267,3 +284,4 @@ class AffiliationNetworkProcessor:
             self._edge_graph = create_graph_from_links(
                 link_gdf=self._link_gdf, min_weight=self.min_edge_weight
             )
+            self.edge = self._edge_graph
