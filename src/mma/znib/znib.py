@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Optional
+from typing import List, Optional
 
 import pandas as pd
 
@@ -15,7 +15,10 @@ class ZNIB(AffiliationNetworkProcessor):
 
     @get_execution_time
     def get_znib_model_input(
-        self, route_df: pd.DataFrame, min_edge_weight: Optional[int] = None
+        self,
+        route_df: pd.DataFrame,
+        min_edge_weight: Optional[int] = None,
+        org_type_list: Optional[List[str]] = None,
     ) -> pd.DataFrame:
         """
         Creates the base edge-level DataFrame if not cached and the input DataFrame for the
@@ -37,6 +40,8 @@ class ZNIB(AffiliationNetworkProcessor):
         :param min_edge_weight:
             The minimum link strength to retain. Edges with lower weights are removed from
             the graph. If ``None``, all edges are included.
+        :param org_type_list:
+            Optional list of organisation types used to filter the edges connecting organisations.
 
         :return:
             A fully enriched DataFrame containing:
@@ -49,5 +54,7 @@ class ZNIB(AffiliationNetworkProcessor):
 
         self._create_affiliation_graph(min_edge_weight=min_edge_weight)
 
-        edges = create_znib_model_input(edge_gdf=self.edge.gdf, route_df=route_df)
+        edges = create_znib_model_input(
+            edge_gdf=self.edge.gdf, route_df=route_df, org_type_list=org_type_list
+        )
         return edges

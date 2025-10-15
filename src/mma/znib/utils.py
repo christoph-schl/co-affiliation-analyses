@@ -1,4 +1,5 @@
 from itertools import combinations
+from typing import List, Optional
 
 import geopandas as gpd
 import numpy as np
@@ -17,6 +18,7 @@ from src.mma.constants import (
     TRAVEL_TIME_SEC_COLUMN,
 )
 from src.mma.network.utils import get_combination_list
+from src.mma.utils.utils import filter_organization_types
 
 _logger = structlog.getLogger(__name__)
 
@@ -198,7 +200,9 @@ def _merge_routes_to_edges(edge_df: pd.DataFrame, route_df: pd.DataFrame) -> pd.
     return merged
 
 
-def create_znib_model_input(edge_gdf: gpd.GeoDataFrame, route_df: pd.DataFrame) -> pd.DataFrame:
+def create_znib_model_input(
+    edge_gdf: gpd.GeoDataFrame, route_df: pd.DataFrame, org_type_list: Optional[List[str]] = None
+) -> pd.DataFrame:
     """
     Creates the input DataFrame for the ZNIB (Zero-Inflated Negative Binomial) model.
 
@@ -218,6 +222,8 @@ def create_znib_model_input(edge_gdf: gpd.GeoDataFrame, route_df: pd.DataFrame) 
         affiliation-level metadata (e.g., organisation type, article counts).
     :param route_df:
         DataFrame containing travel time information between affiliation pairs.
+    :param org_type_list:
+        Optional list of organisation types used to filter the edges connecting organisations.
     :return:
         A fully enriched DataFrame containing:
           - all affiliation-to-affiliation edges
@@ -227,13 +233,17 @@ def create_znib_model_input(edge_gdf: gpd.GeoDataFrame, route_df: pd.DataFrame) 
         ready for input into a ZNIB regression model.
     """
 
-    edges = _get_znib_edges(edge_gdf=edge_gdf)
-    edges = _merge_routes_to_edges(edge_df=edges, route_df=route_df)
+    if org_type_list is not None:
+        edge_gdf = filter_organization_types(edge_gdf=edge_gdf, org_types=org_type_list)
 
-    _apply_proximity_dummy(edge_df=edges)
-    _add_gravity_model_variables(edge_df=edges)
+    znib_edges = _get_znib_edges(edge_gdf=edge_gdf)
 
-    return edges
+    znib_edges = _merge_routes_to_edges(edge_df=znib_edges, route_df=route_df)
+
+    _apply_proximity_dummy(edge_df=znib_edges)
+    _add_gravity_model_variables(edge_df=znib_edges)
+
+    return znib_edges
 
 
 def _add_gravity_model_variables(edge_df: pd.DataFrame) -> None:

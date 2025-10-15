@@ -401,10 +401,8 @@ def retain_affiliation_links_with_min_year_gap(
     after = len(df)
 
     _logger.info(
-        "Dropped %d affiliation link(s) (kept %d) with min_year_gap=%d",
-        before - after,
-        after,
-        min_year_gap,
+        f"Dropped {before - after} affiliation link(s) (kept {after}) "
+        f"with min_year_gap={min_year_gap}",
     )
 
     return df

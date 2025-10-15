@@ -1,12 +1,15 @@
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 import geopandas as gpd
 import numpy as np
 import pandas as pd
 import pycountry
+import structlog
 
 import src.mma.constants as constants
 from src.mma.utils.wrappers import get_execution_time
+
+_logger = structlog.getLogger(__name__)
 
 _ARTICLE_ID_COLUMN = "article_id"
 _ARTICLE_AUTHOR_ID_COLUMN = "author_ids"
@@ -110,3 +113,27 @@ def filter_links_by_country(link_gdf: gpd.GeoDataFrame, country_filter: str) -> 
         & (link_gdf[f"{constants.ISO3_COUNTRY_CODE_COLUMN}_to"] == country_filter)
     ].reset_index(drop=True)
     return link_gdf
+
+
+def filter_organization_types(edge_gdf: gpd.GeoDataFrame, org_types: List[str]) -> gpd.GeoDataFrame:
+    """
+    Keep only rows where BOTH organization type columns (`org_typ` and `org_type_to`) are in the
+    provided list.
+    :param edge_gdf: The edge GeoDataFrame.
+    :param org_types: The given list of organization types.
+    :return: The filtered GeoDataFrame.
+    """
+
+    mask = (edge_gdf[constants.ORGANISATION_TYPE_COLUMN].isin(org_types)) & (
+        edge_gdf[f"{constants.ORGANISATION_TYPE_COLUMN}_to"].isin(org_types)
+    )
+    filtered_gdf = edge_gdf[mask].copy()
+
+    kept_count = len(filtered_gdf)
+    total_count = len(edge_gdf)
+    _logger.info(
+        f"Kept {kept_count}/{total_count} edges where both organization types are"
+        f" in {org_types}"
+    )
+
+    return filtered_gdf
