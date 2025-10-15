@@ -3,6 +3,7 @@ import logging
 import geopandas as gpd
 import pandas as pd
 import pandera.pandas as pa
+from pandera.typing import DataFrame
 
 from src.mma.constants import (
     CHUNK_SIZE_PARALLEL_PROCESSING,
@@ -18,7 +19,7 @@ logger = logging.getLogger(__name__)
 @pa.check_types(lazy=True)
 def add_routing_parameters_to_edges(
     edge_df: pd.DataFrame, affiliation_gdf: gpd.GeoDataFrame
-) -> pd.DataFrame[RouteSchema]:
+) -> DataFrame[RouteSchema]:
     """
     Merges affiliation locations into the edge DataFrame and enriches it with routing attributes
      such as `travel` time and `distance`.
