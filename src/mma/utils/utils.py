@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
 import geopandas as gpd
 import numpy as np
@@ -50,7 +50,7 @@ def get_articles_per_author(article_df: pd.DataFrame) -> pd.DataFrame:
 
 
 def get_affiliation_id_map(
-    affiliation_gdf: gpd.GeoDataFrame,
+    affiliation_gdf: Union[gpd.GeoDataFrame, pd.DataFrame],
 ) -> Optional[Dict[np.int64, np.int64]]:
     """
     Creates a dictionary that maps each affiliation ID to the ID of its
