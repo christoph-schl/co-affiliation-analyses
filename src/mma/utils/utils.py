@@ -107,6 +107,6 @@ def filter_links_by_country(link_gdf: gpd.GeoDataFrame, country_filter: str) -> 
 
     link_gdf = link_gdf[
         (link_gdf[constants.ISO3_COUNTRY_CODE_COLUMN] == country_filter)
-        & (link_gdf[constants.ISO3_COUNTRY_CODE_COLUMN] == country_filter)
+        & (link_gdf[f"{constants.ISO3_COUNTRY_CODE_COLUMN}_to"] == country_filter)
     ].reset_index(drop=True)
     return link_gdf

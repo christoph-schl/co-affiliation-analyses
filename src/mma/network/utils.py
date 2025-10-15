@@ -15,7 +15,9 @@ from src.mma.constants import (
     ARTICLE_AFFILIATION_COUNT_COLUMN,
     ARTICLE_AFFILIATION_ID_COLUMN,
     ARTICLE_AFFILIATION_INDEX_COLUMN,
+    ARTICLE_AUTHOR_ID_COLUMN,
     ARTICLE_COUNT_COLUMN,
+    COVER_DATE_COLUMN,
     FROM_AFFILIATION_INDEX_COLUMN,
     FROM_NODE_COLUMN,
     GEOMETRY_COLUMN,
@@ -33,6 +35,8 @@ _logger = structlog.getLogger()
 _EDGE_COLUMN = "edge"
 _NO_DATA_STRING = "nodata"
 _CHUNK_SIZE_PARALLEL_PROCESSING = 2000
+_YEAR_DIFFERENCE_COLUMN = "year_diff"
+_COVER_YEAR_COLUMN = "cover_year"
 
 
 def get_combination_list(input_list: List[int]) -> List[Tuple[int, int]]:
@@ -347,3 +351,60 @@ def _add_articel_count_to_edges(
     )
 
     return edge_gdf
+
+
+@get_execution_time
+def retain_affiliation_links_with_min_year_gap(
+    link_gdf: gpd.GeoDataFrame, min_year_gap: int
+) -> gpd.GeoDataFrame:
+    """
+    Keep only affiliation links where the same author (for the same from_node/to_node pair)
+    has publications separated by at least `min_year_gap` years.
+
+    :param link_gdf:
+                GeoDataFrame with at least the columns named by `cover_darte`, `author_ids`,
+                `from_node` and `to_node`.
+    :param min_year_gap:
+                Minimum required difference (in years) between earliest and latest publication
+                years for an author at the same affiliation pair. If < 1, the original DataFrame
+                is returned (copied).
+    :return:
+                Filtered GeoDataFrame (a copy).
+    """
+
+    # nothing to filter
+    if min_year_gap < 1:
+        return link_gdf.copy()
+
+    df = link_gdf.copy()
+
+    # extract year (coerce invalid dates to NaT -> will be dropped)
+    df[_COVER_YEAR_COLUMN] = pd.to_datetime(df[COVER_DATE_COLUMN], errors="coerce").dt.year
+
+    # drop rows with missing/invalid cover dates (can't compare years otherwise)
+    if df[_COVER_YEAR_COLUMN].isna().any():
+        invalid_count = df[_COVER_YEAR_COLUMN].isna().sum()
+        _logger.warning(
+            "Dropping %d link(s) because %s could not be parsed as a year",
+            invalid_count,
+            COVER_DATE_COLUMN,
+        )
+        df = df.dropna(subset=[_COVER_YEAR_COLUMN])
+
+    # compute year-span for each (author, from_node, to_node) group
+    df[_YEAR_DIFFERENCE_COLUMN] = df.groupby(
+        [ARTICLE_AUTHOR_ID_COLUMN, FROM_NODE_COLUMN, TO_NODE_COLUMN]
+    )[_COVER_YEAR_COLUMN].transform(lambda years: int(years.max() - years.min()))
+
+    before = len(link_gdf)
+    df = df[df[_YEAR_DIFFERENCE_COLUMN] >= int(min_year_gap)].drop(columns=[_COVER_YEAR_COLUMN])
+    after = len(df)
+
+    _logger.info(
+        "Dropped %d affiliation link(s) (kept %d) with min_year_gap=%d",
+        before - after,
+        after,
+        min_year_gap,
+    )
+
+    return df

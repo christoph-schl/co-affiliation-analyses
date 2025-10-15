@@ -18,6 +18,7 @@ from src.mma.network.utils import (
     Edge,
     create_affiliation_links,
     create_graph_from_links,
+    retain_affiliation_links_with_min_year_gap,
 )
 from src.mma.utils.utils import (
     get_affiliation_id_map,
@@ -120,6 +121,13 @@ def apply_parent_affiliation_id_and_idx(
     return article_author_df
 
 
+def _check_int_value(value: int) -> None:
+    if not isinstance(value, int):
+        raise ValueError("value must be an integer")
+    if value < 0:
+        raise ValueError("value must be non-negative")
+
+
 @dataclass
 class AffiliationNetworkProcessor:
     """
@@ -164,6 +172,7 @@ class AffiliationNetworkProcessor:
     _link_gdf: Optional[gpd.GeoDataFrame] = None
     _edge_graph: Optional[Edge] = None
     _min_edge_weight: Optional[int] = 0
+    _min_year_gap: Optional[int] = 0
     _article_author_df: pd.DataFrame = field(init=False, default=None)
     _affiliation_map: Optional[Dict[np.int64, np.int64]] = field(init=False, default=None)
 
@@ -199,11 +208,17 @@ class AffiliationNetworkProcessor:
 
     @min_edge_weight.setter
     def min_edge_weight(self, value: int) -> None:
-        if not isinstance(value, int):
-            raise ValueError("min_edge_weight must be an integer")
-        if value < 0:
-            raise ValueError("min_edge_weight must be non-negative")
+        _check_int_value(value=value)
         self._min_edge_weight = value
+
+    @property
+    def min_year_gap(self) -> Optional[int]:
+        return self._min_year_gap
+
+    @min_year_gap.setter
+    def min_year_gap(self, value: int) -> None:
+        _check_int_value(value=value)
+        self._min_year_gap = value
 
     @property
     def edge(self) -> Edge:
@@ -223,7 +238,7 @@ class AffiliationNetworkProcessor:
         self.affiliation_gdf = AffiliationSchema.validate(self.affiliation_gdf)
 
     @get_execution_time
-    def get_affiliation_links(self) -> gpd.GeoDataFrame:
+    def get_affiliation_links(self, min_year_gap: Optional[int] = None) -> gpd.GeoDataFrame:
         """
         Creates a GeoDataFrame with all unique link combinations for authors with multiple
         affiliations.
@@ -234,11 +249,17 @@ class AffiliationNetworkProcessor:
         Affiliation information, including geometry, is merged into the link DataFrame, resulting in
         a GeoDataFrame with line geometries representing each link.
 
-        :return: A GeoDataFrame containing links between affiliations, with a line geometry for each
-                 link.
+        :param min_year_gap:
+                Minimum required difference (in years) between earliest and latest publication
+                years for an author at the same affiliation pair. If < 1, the original DataFrame
+                is returned.
+
+        :return:
+                A GeoDataFrame containing links between affiliations, with a line geometry for each
+                link.
         """
 
-        self._create_affiliation_links()
+        self._create_affiliation_links(min_year_gap=min_year_gap)
 
         return self._link_gdf
 
@@ -264,13 +285,20 @@ class AffiliationNetworkProcessor:
         self._create_affiliation_graph(min_edge_weight=min_edge_weight)
         return self._edge_graph
 
-    def _create_affiliation_links(self) -> None:
+    def _create_affiliation_links(self, min_year_gap: Optional[int] = None) -> None:
         if self._link_gdf is None:
             self._link_gdf = create_affiliation_links(
                 affiliation_gdf=self.affiliation_gdf,
                 article_author_df=self._article_author_df,
                 country_filter=self.country_filter,
             )
+
+        if min_year_gap is not None:
+            self.min_year_gap = min_year_gap
+
+        self._link_gdf = retain_affiliation_links_with_min_year_gap(
+            link_gdf=self._link_gdf, min_year_gap=self.min_year_gap
+        )
 
     def _create_affiliation_graph(self, min_edge_weight: Optional[int] = None) -> None:
 

@@ -16,6 +16,8 @@ UNMAPPED_AFFILIATION_ID_COLUMN = "unmapped_id"
 ARTICLE_AFFILIATION_INDEX_COLUMN = "affiliation_idx"
 ARTICLE_AFFILIATION_COUNT_COLUMN = "affiliation_count"
 AFFILIATION_NAME_VARIANTS_COLUMN = "name_variants"
+COVER_DATE_COLUMN = "cover_date"
+ARTICLE_AUTHOR_ID_COLUMN = "author_ids"
 
 
 # link or edge column names
