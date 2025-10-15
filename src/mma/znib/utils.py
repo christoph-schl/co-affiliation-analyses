@@ -1,3 +1,5 @@
+from itertools import combinations
+
 import geopandas as gpd
 import numpy as np
 import pandas as pd
@@ -19,22 +21,21 @@ from src.mma.network.utils import get_combination_list
 _logger = structlog.getLogger(__name__)
 
 
-def _build_proximity_dict(
-    org_types: list[str], include_self: bool = True
-) -> dict[str, dict[str, str]]:
+def _build_proximity_dict(org_types: list[str]) -> dict[str, dict[str, str]]:
     """
     Build a proximity mapping for all pairs of organisation types.
     :param org_types: List of organisation type names.
-    :param include_self: Whether to include pairs like "univ_univ".
     :return: A dict mapping e.g. 'univ_gov' → {'from': 'univ', 'to': 'gov'}
     """
 
-    pairs = [
-        (a, b)
-        for i, a in enumerate(org_types)
-        for b in org_types[i if include_self else i + 1 :]  # noqa: E203
-    ]
-    return {f"{a}_{b}": {"from": a, "to": b} for a, b in pairs}
+    proximity_dict = {}
+    for pair in combinations(org_types, 2):
+        proximity_dict["_".join(pair)] = {"from": pair[0], "to": pair[1]}
+
+    for org_type in org_types:
+        proximity_dict[f"{org_type}_{org_type}"] = {"from": org_type, "to": org_type}
+
+    return proximity_dict
 
 
 def _classify_proximity(

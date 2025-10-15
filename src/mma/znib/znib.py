@@ -4,6 +4,7 @@ from typing import Optional
 import pandas as pd
 
 from src.mma.network.network import AffiliationNetworkProcessor
+from src.mma.utils.wrappers import get_execution_time
 from src.mma.znib.utils import create_znib_model_input
 
 
@@ -12,6 +13,7 @@ class ZNIB(AffiliationNetworkProcessor):
 
     pass
 
+    @get_execution_time
     def get_znib_model_input(
         self, route_df: pd.DataFrame, min_edge_weight: Optional[int] = None
     ) -> pd.DataFrame:
