@@ -84,7 +84,8 @@ def _get_parent_affiliation_id(
 
 
 def apply_parent_affiliation_id_and_idx(
-    article_author_df: pd.DataFrame, affiliation_map: Dict[np.int64, np.int64]
+    article_author_df: pd.DataFrame,
+    affiliation_map: Union[Dict[np.int64, np.int64], Dict[int, int]],
 ) -> pd.DataFrame:
     """
     Determine the parent affiliation IDs for each author and update the corresponding columns.
