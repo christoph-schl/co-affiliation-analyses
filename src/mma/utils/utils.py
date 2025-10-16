@@ -51,7 +51,7 @@ def get_articles_per_author(article_df: pd.DataFrame) -> pd.DataFrame:
 
 def get_affiliation_id_map(
     affiliation_gdf: Union[gpd.GeoDataFrame, pd.DataFrame],
-) -> Optional[Dict[np.int64, np.int64]]:
+) -> Dict[np.int64, np.int64]:
     """
     Creates a dictionary that maps each affiliation ID to the ID of its
     parent organization. Only rows where the parent affiliation ID is
@@ -66,13 +66,13 @@ def get_affiliation_id_map(
     id_col = constants.AFFILIATION_ID_COLUMN
 
     if parent_col not in affiliation_gdf.columns:
-        return None
+        return {}
 
     # Filter rows with a valid parent
     df_parent = affiliation_gdf.loc[affiliation_gdf[parent_col].notna(), [id_col, parent_col]]
 
     if df_parent.empty:
-        return None
+        return {}
 
     # Convert parent IDs to integer safely
     df_parent[parent_col] = df_parent[parent_col].astype("int64")
