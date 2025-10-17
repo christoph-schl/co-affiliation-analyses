@@ -36,7 +36,7 @@ TRAVEL_TIME_SEC_COLUMN = "duration_s"
 ARTICLE_COUNT_COLUMN = "article_count"
 LN_PROD_ARTICLE_COUNT_COLUMN = "ln_prod_article_count"
 LN_DURATION_COLUMN = "ln_duration"
-ORG_TYPE_FILTER_LIST = ["univ", "resi", "hosp", "comp", "coll", "ngo", "gov", "museum", "milo"]
+ORG_TYPE_FILTER_LIST = ["univ", "resi", "hosp", "comp", "coll", "ngo", "gov"]
 
 # valhalla
 DEFAULT_VALHALLA_BASE_URL = "http://localhost:8002"
