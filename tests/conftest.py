@@ -75,8 +75,21 @@ def get_link_df_test() -> pd.DataFrame:
             "preferred_name_to": ["Univ_9", "Univ_9", "Resi_11", "Resi_1"],
             "cover_date": ["2013-05-01", "2015-05-01", "2020-05-01", "2023-05-01"],
             "author_ids": ["Author1", "Author1", "Author2", "Author3"],
+            "org_type": ["univ", "univ", "resi", "resi"],
+            "org_type_to": ["univ", "univ", "resi", "resi"],
         }
     )
+
+
+def get_routes_test() -> pd.DataFrame:
+    data = {
+        "affiliation_id_from": [8, 8, 8, 1, 9, 9, 1, 10, 1, 1],
+        "affiliation_id_to": [9, 10, 11, 8, 10, 11, 9, 11, 10, 11],
+        "duration_s": [1536, 1973, 2301, 3185, 591, 2087, 2360, 2444, 789, 1994],
+    }
+    df = pd.DataFrame(data)
+
+    return df
 
 
 @pytest.fixture(name="article_df")
@@ -97,3 +110,8 @@ def fixture_impact_df() -> pd.DataFrame:
 @pytest.fixture(name="link_df")
 def fixture_link_df() -> pd.DataFrame:
     return get_link_df_test()
+
+
+@pytest.fixture(name="route_df")
+def fixture_route_df() -> pd.DataFrame:
+    return get_routes_test()

@@ -234,6 +234,14 @@ class AffiliationNetworkProcessor:
     def edge(self, value: Edge) -> None:
         self._edge_graph = value
 
+    @property
+    def link(self) -> gpd.GeoDataFrame:
+        return self._link_gdf
+
+    @link.setter
+    def link(self, value: gpd.GeoDataFrame) -> None:
+        self._link_gdf = value
+
     def _validate_input_dataframes(self) -> None:
         self.article_df = ArticleSchema.validate(self.article_df)
         self.affiliation_gdf = AffiliationSchema.validate(self.affiliation_gdf)
@@ -293,6 +301,7 @@ class AffiliationNetworkProcessor:
                 article_author_df=self._article_author_df,
                 country_filter=self.country_filter,
             )
+            self.link = self._link_gdf
 
         if min_year_gap is not None:
             self.min_year_gap = min_year_gap
@@ -300,6 +309,7 @@ class AffiliationNetworkProcessor:
         self._link_gdf = retain_affiliation_links_with_min_year_gap(
             link_gdf=self._link_gdf, min_year_gap=self.min_year_gap
         )
+        self.link = self._link_gdf
 
     def _create_affiliation_graph(self, min_edge_weight: Optional[int] = None) -> None:
 

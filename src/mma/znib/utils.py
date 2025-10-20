@@ -123,7 +123,7 @@ def _apply_proximity_dummy(edge_df: pd.DataFrame) -> pd.DataFrame:
     ] = 1
 
 
-def _get_znib_edges(edge_gdf: gpd.GeoDataFrame) -> pd.DataFrame:
+def get_znib_edges(edge_gdf: gpd.GeoDataFrame) -> pd.DataFrame:
     """
     Build a dataframe of all affiliation-to-affiliation combinations enriched with organisation
     types (for both sides) and the affiliation edge count.
@@ -248,7 +248,7 @@ def enrich_edges_with_org_info(
     if org_type_list is not None:
         edge_gdf = filter_organization_types(edge_gdf=edge_gdf, org_types=org_type_list)
 
-    znib_edges = _get_znib_edges(edge_gdf=edge_gdf)
+    znib_edges = get_znib_edges(edge_gdf=edge_gdf)
 
     znib_edges = _merge_routes_to_edges(edge_df=znib_edges, route_df=route_df)
 
@@ -305,7 +305,6 @@ class ZNIBInput:
     def __post_init__(self) -> None:
         """Compute start parameters automatically after initialization."""
         self._compute_start_params()
-        print("Start params:", self._start_parameters)
 
     @property
     def start_parameters(self) -> npt.NDArray:
