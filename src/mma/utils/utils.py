@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Union
+from typing import Dict, Iterable, List, Optional, Union
 
 import geopandas as gpd
 import numpy as np
@@ -7,6 +7,7 @@ import pycountry
 import structlog
 
 import src.mma.constants as constants
+from src.mma.constants import GEOMETRY_COLUMN
 from src.mma.utils.wrappers import get_execution_time
 
 _logger = structlog.getLogger(__name__)
@@ -14,6 +15,10 @@ _logger = structlog.getLogger(__name__)
 _ARTICLE_ID_COLUMN = "article_id"
 _ARTICLE_AUTHOR_ID_COLUMN = "author_ids"
 _AUTHOR_SEPARATOR = ";"
+_TO_PREFIX = "to_"
+_TO_SUFFIX = "_to"
+_FROM_PREFIX = "from_"
+_FROM_SUFFIX = "_from"
 
 ISO3_CODES = [country.alpha_3 for country in pycountry.countries]
 
@@ -137,3 +142,99 @@ def filter_organization_types(edge_gdf: gpd.GeoDataFrame, org_types: List[str]) 
     )
 
     return filtered_gdf
+
+
+def _select_by_affix(
+    columns: Iterable[str], prefixes: Iterable[str] = (), suffixes: Iterable[str] = ()
+) -> List[str]:
+    """
+    Return columns that start with any prefix or end with any suffix (preserve original order).
+    """
+    prefixes = tuple(prefixes)
+    suffixes = tuple(suffixes)
+    return [
+        col
+        for col in columns
+        if any(col.startswith(p) for p in prefixes) or any(col.endswith(s) for s in suffixes)
+    ]
+
+
+def _strip_affixes(name: str, prefixes: Iterable[str] = (), suffixes: Iterable[str] = ()) -> str:
+    """Remove the first matching prefix and/or suffix from a column name."""
+    for p in prefixes:
+        if name.startswith(p):
+            name = name[len(p) :]  # noqa: E203
+            break
+    for s in suffixes:
+        if name.endswith(s):
+            name = name[: -len(s)]
+            break
+    return name
+
+
+# build rename mappings (strip prefixes/suffixes)
+def _make_rename_map(
+    columns: Iterable[str], prefixes: Iterable[str], suffixes: Iterable[str]
+) -> Dict[str, str]:
+    return {col: _strip_affixes(col, prefixes=prefixes, suffixes=suffixes) for col in columns}
+
+
+def get_link_nodes(link_gdf: gpd.GeoDataFrame) -> pd.DataFrame:
+    """
+    Convert a 'link' GeoDataFrame that encodes 'from' and 'to' node columns into a stacked node
+    DataFrame.
+
+    :param link_gdf: The link GeoDataFrame.
+    :return: The DataFrame with extracted 'from' and 'to' nodes.
+    """
+    cols = list(link_gdf.columns)
+
+    # find to/from columns (preserve order)
+    to_prefix_cols = _select_by_affix(cols, prefixes=[_TO_PREFIX])
+    to_suffix_cols = _select_by_affix(cols, suffixes=[_TO_SUFFIX])
+    to_columns = to_prefix_cols + [c for c in to_suffix_cols if c not in to_prefix_cols]
+
+    from_columns = _select_by_affix(cols, prefixes=[_FROM_PREFIX], suffixes=[_FROM_SUFFIX])
+    # add stripped versions of the to-suffix columns (original behavior)
+    stripped_to_suffix_cols = [c.replace(_TO_SUFFIX, "") for c in to_suffix_cols]
+    from_columns += [c for c in stripped_to_suffix_cols if c not in from_columns]
+
+    # used columns set (for determining common columns)
+    used = set(from_columns + to_columns)
+
+    # columns that are neither from- nor to-specific -> common to both
+    common_columns = [c for c in cols if c not in used]
+
+    # final ordered column lists for each side
+    from_cols_final = from_columns + common_columns
+    to_cols_final = to_columns + common_columns
+
+    # slice dataframes
+    from_df = link_gdf.loc[:, from_cols_final].copy()
+    to_df = link_gdf.loc[:, to_cols_final].copy()
+
+    from_rename = _make_rename_map(
+        columns=from_df.columns, prefixes=[_FROM_PREFIX], suffixes=[_FROM_SUFFIX]
+    )
+    to_rename = _make_rename_map(
+        columns=to_df.columns, prefixes=[_TO_PREFIX], suffixes=[_TO_SUFFIX]
+    )
+
+    from_df = from_df.rename(columns=from_rename)
+    to_df = to_df.rename(columns=to_rename)
+
+    # concat, drop geometry, sort and reset index (keeps original behavior)
+    node_df = pd.concat([from_df, to_df], ignore_index=True)
+
+    if GEOMETRY_COLUMN in node_df.columns:
+        node_df = node_df.drop(columns=[GEOMETRY_COLUMN])
+
+    node_df = node_df.sort_values(
+        by=[
+            constants.EID_COLUMN,
+            constants.ARTICLE_AUTHOR_ID_COLUMN,
+            constants.ARTICLE_AFFILIATION_INDEX_COLUMN,
+        ]
+    ).reset_index(drop=True)
+
+    return node_df

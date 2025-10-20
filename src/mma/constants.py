@@ -51,3 +51,5 @@ DISTANCE_M_COLUMN = "distance_m"
 # routing
 AFFILIATION_ID_FROM_COLUMN = "affiliation_id_from"
 AFFILIATION_ID_TO_COLUMN = "affiliation_id_to"
+
+EID_COLUMN = "eid"
