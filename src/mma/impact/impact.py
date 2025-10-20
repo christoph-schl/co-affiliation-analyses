@@ -1,11 +1,82 @@
 from dataclasses import dataclass
+from typing import Optional
 
 import geopandas as gpd
+import pandas as pd
+
+from src.mma.impact.utils import (
+    get_mean_weighted_percentile_ranks,
+    merge_impact_measures_to_nodes,
+)
+from src.mma.utils.utils import get_link_nodes
 
 
 @dataclass
 class Impact:
+    """
+    Used to compute node-level citation impact metrics and to aggregate them into
+    Mean Weighted Percentile Ranks (mwPR) across user-defined groups, based on
+    Formula (14) from Bornmann & Williams (2020).
+
+    This class performs two main steps automatically upon initialization:
+      1. Converts link-based geospatial data (`link_gdf`) into a node-level
+         representation using `get_link_nodes()`.
+      2. Merges citation percentile information from `impact_df` into the
+         node DataFrame using `merge_impact_measures_to_nodes()`.
+
+    The resulting node-level DataFrame (`_node_df`) contains one row per node
+    with associated percentile scores and metadata, and serves as the input for
+    group-based mwPR computations.
+
+    Scientific Basis
+    ----------------
+    The Mean Weighted Percentile Rank (mwPR) is calculated using the definition
+    in Formula (14) of:
+
+        Bornmann, L., & Williams, R. (2020).
+        *An evaluation of percentile measures of citation impact, and a proposal for
+        making them better*. Scientometrics, 124, 1691–1709.
+        https://doi.org/10.1007/s11192-020-03512-7
+
+    The mwPR for a group F (e.g. institution, field, region) is defined as:
+
+        mwPR(F) = ((wPR₁ × FR₁) + (wPR₂ × FR₂) + ... + (wPRᵧ × FRᵧ)) / Σᵢ FRᵢ
+
+    where:
+      • wPRᵢ  : the percentile rank (e.g. Hazen percentile) of node i
+      • FRᵢ   : the fractional contribution of node i, defined here as:
+                FRᵢ = 1 / (number of nodes in the same group)
+                ensuring each node contributes equally within its group
+      • y     : the total number of nodes in the group
+    """
+
     link_gdf: gpd.GeoDataFrame
+    impact_df: pd.DataFrame
+    _node_df: Optional[pd.DataFrame] = None
 
     def __post_init__(self) -> None:
-        print()
+        self._node_df = get_link_nodes(link_gdf=self.link_gdf)
+        self._node_df = merge_impact_measures_to_nodes(
+            node_df=self._node_df, impact_df=self.impact_df
+        )
+
+    def get_wpr(self, group_column: str, min_samples: int = 0) -> pd.DataFrame:
+        """
+        Computes the Mean Weighted Percentile Rank (mwPR) for each group in the
+        internal node DataFrame.
+
+        This method applies the mwPR definition described in the class docstring,
+        using fractional weights computed as 1 / (number of nodes per group).
+
+        :param group_column:
+            The column name of the node-level citation impact metric column.
+        :param min_samples:
+            The minimum number of samples for a group to be included.
+        :return:
+            The DataFrame with mwPRs for each group.
+        """
+
+        mwpr_df = get_mean_weighted_percentile_ranks(
+            df=self._node_df, group_column=group_column, min_samples=min_samples
+        )
+        return mwpr_df
