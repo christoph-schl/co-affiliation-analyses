@@ -26,6 +26,8 @@ from src.mma.utils.utils import filter_organization_types
 
 _logger = structlog.getLogger(__name__)
 
+_SAME_ORG_TYPE_COLUMN_NAME = "same_org"
+
 
 def _build_proximity_dict(org_types: list[str]) -> dict[str, dict[str, str]]:
     """
@@ -113,6 +115,12 @@ def _apply_proximity_dummy(edge_df: pd.DataFrame) -> pd.DataFrame:
             first_org_type=org_types["from"],
             second_org_type=org_types["to"],
         )
+
+    edge_df[_SAME_ORG_TYPE_COLUMN_NAME] = 0
+    edge_df.loc[
+        edge_df[ORGANISATION_TYPE_COLUMN] == edge_df[f"{ORGANISATION_TYPE_COLUMN}_to"],
+        _SAME_ORG_TYPE_COLUMN_NAME,
+    ] = 1
 
 
 def _get_znib_edges(edge_gdf: gpd.GeoDataFrame) -> pd.DataFrame:

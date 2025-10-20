@@ -3,6 +3,7 @@ from typing import List, Optional
 
 import pandas as pd
 import statsmodels.api as sm
+from sklearn.preprocessing import StandardScaler
 from statsmodels.discrete.count_model import (
     ZeroInflatedNegativeBinomialP,
     ZeroInflatedNegativeBinomialResultsWrapper,
@@ -42,6 +43,10 @@ class ZINBModel:
         self._result: Optional[ZeroInflatedNegativeBinomialResultsWrapper] = None
 
     def _prepare_input(self) -> ZNIBInput:
+        if len(self.config.scale_vars) > 0:
+            self.df[self.config.scale_vars] = StandardScaler().fit_transform(
+                self.df[self.config.scale_vars]
+            )
         dep = self.df[self.config.dependent_var].to_numpy(dtype=float)
         predictors = sm.add_constant(self.df[self.config.predictor_vars].copy(), has_constant="add")
 
