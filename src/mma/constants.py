@@ -37,6 +37,11 @@ ARTICLE_COUNT_COLUMN = "article_count"
 LN_PROD_ARTICLE_COUNT_COLUMN = "ln_prod_article_count"
 LN_DURATION_COLUMN = "ln_duration"
 ORG_TYPE_FILTER_LIST = ["univ", "resi", "hosp", "comp", "coll", "ngo", "gov"]
+DEFAULT_REGULARIZATION_STRENGTH = 3.0
+DEFAULT_ZERO_INFLATION_MODEL = "logit"
+DEFAULT_DISPERSION_POWER = 2
+DEFAULT_FIT_METHOD = "bfgs"
+DEFAULT_MAX_ITERATIONS = 400
 
 # valhalla
 DEFAULT_VALHALLA_BASE_URL = "http://localhost:8002"

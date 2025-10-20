@@ -1,15 +1,19 @@
+from dataclasses import dataclass, field
 from itertools import combinations
-from typing import List, Optional
+from typing import List, Optional, Union
 
 import geopandas as gpd
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
+import statsmodels.api as sm
 import structlog
 
 from src.mma.constants import (
     AFFILIATION_EDGE_COUNT_COLUMN,
     AFFILIATION_ID_COLUMN,
     ARTICLE_COUNT_COLUMN,
+    DEFAULT_REGULARIZATION_STRENGTH,
     FROM_NODE_COLUMN,
     LN_DURATION_COLUMN,
     LN_PROD_ARTICLE_COUNT_COLUMN,
@@ -200,7 +204,7 @@ def _merge_routes_to_edges(edge_df: pd.DataFrame, route_df: pd.DataFrame) -> pd.
     return merged
 
 
-def create_znib_model_input(
+def enrich_edges_with_org_info(
     edge_gdf: gpd.GeoDataFrame, route_df: pd.DataFrame, org_type_list: Optional[List[str]] = None
 ) -> pd.DataFrame:
     """
@@ -275,3 +279,83 @@ def _add_gravity_model_variables(edge_df: pd.DataFrame) -> None:
     edge_df[count_col] = edge_df[count_col].astype(np.int64)
     edge_df[ln_article_col] = np.log(edge_df[article_count_col] * edge_df[article_count_col])
     edge_df[ln_dur_col] = np.log(edge_df[duration_col] + 1)
+
+
+@dataclass
+class ZNIBInput:
+    """
+    Container for Zero-Inflated Negative Binomial (ZINB) model input matrices
+    and computed start parameters for optimization.
+    """
+
+    dependent: npt.NDArray
+    predictors: pd.DataFrame
+    inflation: pd.DataFrame
+    alpha: float = DEFAULT_REGULARIZATION_STRENGTH
+    _start_parameters: npt.NDArray = field(init=False, repr=False)
+
+    def __post_init__(self) -> None:
+        """Compute start parameters automatically after initialization."""
+        self._compute_start_params()
+        print("Start params:", self._start_parameters)
+
+    @property
+    def start_parameters(self) -> npt.NDArray:
+        """Read-only access to the precomputed start vector."""
+        return self._start_parameters
+
+    def _compute_start_params(self) -> None:
+        """Compute start parameters for ZINB: [count_coefs..., infl_coefs..., alpha_dispersion]."""
+        y = self.dependent.ravel()
+        X_count = self.predictors.copy()
+        X_infl = self.inflation.copy()
+
+        # --- Inflation start: regularized logit ---
+        inflation_target = (y == 0).astype(int)
+        logit = sm.Logit(inflation_target, X_infl)
+        logit_res = logit.fit_regularized(alpha=self.alpha, disp=False)
+        start_infl = np.asarray(logit_res.params, dtype=float)
+
+        # --- Count start: NB GLM ---
+        nb_model = sm.GLM(y, X_count, family=sm.families.NegativeBinomial(alpha=1.0))
+        nb_res = nb_model.fit()
+        start_count = np.asarray(nb_res.params, dtype=float)
+
+        # --- Dispersion: use GLM scale as starting guess ---
+        dispersion = np.clip(float(nb_res.scale), 1e-6, 100.0)
+        start_alpha = np.array([dispersion], dtype=float)
+
+        # --- Concatenate full start vector ---
+        self._start_parameters = np.concatenate([start_count, start_infl, start_alpha])
+
+
+def prepare_znib_input(
+    df: pd.DataFrame,
+    dependent_variable: str,
+    predictor_variables: List[str],
+    zero_inflation_vars: Union[str, List[str]],
+) -> ZNIBInput:
+    """
+    Prepare ZINB input matrices and wrap them in a ZNIBVars dataclass.
+
+    :param df:
+         Source dataframe containing all relevant columns.
+    :param dependent_variable:
+        Name of the dependent variable.
+    :param predictor_variables:
+        Columns used as predictors in the NB count part.
+    :param zero_inflation_vars:
+        Column(s) used as predictors for the inflation (logit) part.
+    :return:
+        Dataclass containing dependent array, predictor matrix, inflation matrix,
+        and precomputed start parameters.
+    """
+
+    if isinstance(zero_inflation_vars, str):
+        zero_inflation_vars = [zero_inflation_vars]
+
+    dependent = df[dependent_variable].to_numpy()
+    predictors = sm.add_constant(df[predictor_variables].copy(), has_constant="add")
+    inflation = sm.add_constant(df[zero_inflation_vars].copy(), has_constant="add")
+
+    return ZNIBInput(dependent=dependent, predictors=predictors, inflation=inflation)
