@@ -53,13 +53,14 @@ def get_affiliation_test_df() -> gpd.GeoDataFrame:
 def get_impact_test_df() -> pd.DataFrame:
     return pd.DataFrame(
         {
-            "item_id": ["Eid1", "Eid2", "Eid3"],
-            "hazen_perc_med": [75.0248, 97.7975, 99.7569],
+            "item_id": ["Eid1", "Eid2", "Eid3", "Eid4"],
+            "hazen_perc_med": [75.0248, 97.7975, 99.7569, 80.0],
             "class_name": [
                 "{Surgery,Oral Surgery,Otorhinolaryngology}",
                 "{Dermatology}",
                 "{Industrial Relations,Engineering (all),"
                 "Computer Science Applications,Strategy and Management,Law}",
+                "{Dermatology}",
             ],
         }
     )
