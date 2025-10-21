@@ -1,8 +1,12 @@
+import enum
+from dataclasses import dataclass
+
 import numpy as np
 import pandas as pd
 import structlog
 
 from src.mma.constants import (
+    AFFILIATION_CLASS_COLUMN,
     CLASS_NAME_COLUMN,
     EID_COLUMN,
     HAZEN_PERCENTILE_COLUMN,
@@ -15,6 +19,12 @@ _logger = structlog.getLogger(__name__)
 _SAMPLES_COLUMN = "samples"
 _WEIGHT_COLUMN = "weight"
 _GROUP_COUNT_COLUMN = "n_groups"
+
+
+class AffiliationType(enum.Enum):
+    ALL = "All"
+    FIRST = "First"
+    LAST = "Last"
 
 
 def merge_impact_measures_to_nodes(
@@ -51,6 +61,13 @@ def merge_impact_measures_to_nodes(
         node_df = node_df.drop(null_index).reset_index(drop=True)
         if len(null_index) > 0:
             _logger.warning(f"dropped {len(null_index)} nodes with missing hazen percentiles")
+
+    # tag affiliation type
+    first_affiliation_idx = node_df.affiliation_idx == 0
+    last_affiliation_idx = node_df.affiliation_idx == node_df.affiliation_count - 1
+    node_df.loc[first_affiliation_idx, AFFILIATION_CLASS_COLUMN] = AffiliationType.FIRST.value
+    node_df.loc[last_affiliation_idx, AFFILIATION_CLASS_COLUMN] = AffiliationType.LAST.value
+
     return node_df
 
 
@@ -128,3 +145,77 @@ def get_mean_weighted_percentile_ranks(
         drop=True
     )
     return mean_weighted_pr
+
+
+def _compute_mwpr_for_class(
+    node_df: pd.DataFrame, aff_class: str, filter_names: list[str], group_column: str
+) -> pd.DataFrame:
+    """
+    Private helper to compute mwPR for a specific affiliation class and filter
+    groups to match the given list of affiliation names.
+
+    :param aff_class: AffiliationType value (e.g., FIRST or LAST)
+    :param filter_names: list of affiliation names to retain
+    :param group_column: The group column
+    :return: filtered mwPR DataFrame
+    """
+    df_class = node_df[node_df[AFFILIATION_CLASS_COLUMN] == aff_class].copy()
+    mwpr_class = get_mean_weighted_percentile_ranks(
+        df=df_class, group_column=group_column, min_samples=0
+    )
+    return mwpr_class[mwpr_class.preferred_name.isin(filter_names)].reset_index(drop=True)
+
+
+@dataclass
+class AffiliationMwpr:
+    all: pd.DataFrame
+    first: pd.DataFrame
+    last: pd.DataFrame
+
+
+def compute_mwpr_for_affiliation_class(
+    node_df: pd.DataFrame,
+    n_groups: int,
+    min_samples: int = 0,
+    group_column: str = "preferred_name",
+) -> pd.DataFrame:
+    """
+    Compute mwPR for all affiliations as well as for first and last author affiliations.
+
+    :param node_df: DataFrame containing node-level data
+    :param n_groups: number of top groups to retain for 'ALL' affiliation class
+    :param min_samples: minimum sample size for mwPR computation
+    :param group_column: The group column for which to compute mwPR
+    :return: The DataFrame with 'all', 'first', 'last' mapping to corresponding mwPR DataFrames
+    """
+
+    # compute mwPR for all affiliations
+    mwpr_all = get_mean_weighted_percentile_ranks(
+        df=node_df, group_column=group_column, min_samples=min_samples
+    ).head(n=n_groups)
+    mwpr_all[AFFILIATION_CLASS_COLUMN] = AffiliationType.ALL.value
+
+    # Keep list of affiliation names for filtering
+    affiliation_names = mwpr_all.preferred_name.tolist()
+
+    # --- Compute mwPR for first and last authors ---
+    mwpr_first = _compute_mwpr_for_class(
+        node_df=node_df,
+        aff_class=AffiliationType.FIRST.value,
+        filter_names=affiliation_names,
+        group_column=group_column,
+    )
+    mwpr_first[AFFILIATION_CLASS_COLUMN] = AffiliationType.FIRST.value
+
+    mwpr_last = _compute_mwpr_for_class(
+        node_df=node_df,
+        aff_class=AffiliationType.LAST.value,
+        filter_names=affiliation_names,
+        group_column=group_column,
+    )
+    mwpr_last[AFFILIATION_CLASS_COLUMN] = AffiliationType.LAST.value
+
+    mwpr = pd.concat([mwpr_all, mwpr_first, mwpr_last])
+    mwpr[MWPR_COLUMN] = mwpr[MWPR_COLUMN].round(decimals=2)
+
+    return mwpr

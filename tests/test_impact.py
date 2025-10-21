@@ -39,5 +39,5 @@ def test_get_mean_weighted_percentile_ranks_pipline(
     links = processor.get_affiliation_links()
 
     impact = Impact(link_gdf=links, impact_df=impact_df)
-    mwpr = impact.get_wpr(group_column=ORGANISATION_TYPE_COLUMN)
+    mwpr = impact.get_mwpr(group_column=ORGANISATION_TYPE_COLUMN)
     assert mwpr[ORGANISATION_TYPE_COLUMN].tolist() == ["gov", "resi", "univ"]

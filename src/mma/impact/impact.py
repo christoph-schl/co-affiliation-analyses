@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional
 
 import geopandas as gpd
@@ -52,7 +52,7 @@ class Impact:
 
     link_gdf: gpd.GeoDataFrame
     impact_df: pd.DataFrame
-    _node_df: Optional[pd.DataFrame] = None
+    _node_df: Optional[pd.DataFrame] = field(default=None, init=False)
 
     def __post_init__(self) -> None:
         self._node_df = get_link_nodes(link_gdf=self.link_gdf)
@@ -60,7 +60,7 @@ class Impact:
             node_df=self._node_df, impact_df=self.impact_df
         )
 
-    def get_wpr(self, group_column: str, min_samples: int = 0) -> pd.DataFrame:
+    def get_mwpr(self, group_column: str, min_samples: int = 0) -> pd.DataFrame:
         """
         Computes the Mean Weighted Percentile Rank (mwPR) for each group in the
         internal node DataFrame.

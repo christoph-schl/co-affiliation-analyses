@@ -58,4 +58,7 @@ CLASS_NAME_COLUMN = "class_name"
 ITEM_ID_COLUMN = "item_id"  # corresponds to `eid`
 MWPR_COLUMN = "mwPR"
 
+# plot
+AFFILIATION_CLASS_COLUMN = "affiliation_class"
+
 EID_COLUMN = "eid"
