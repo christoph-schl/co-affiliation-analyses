@@ -56,6 +56,6 @@ AFFILIATION_ID_TO_COLUMN = "affiliation_id_to"
 HAZEN_PERCENTILE_COLUMN = "hazen_perc_med"
 CLASS_NAME_COLUMN = "class_name"
 ITEM_ID_COLUMN = "item_id"  # corresponds to `eid`
-MWPR_COLUMN = "mwPR"  # mean weighted percentile ranks
+MWPR_COLUMN = "mwPR"
 
 EID_COLUMN = "eid"

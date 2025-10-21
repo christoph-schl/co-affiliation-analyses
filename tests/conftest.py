@@ -65,7 +65,7 @@ def get_impact_test_df() -> pd.DataFrame:
     )
 
 
-def get_link_df_test() -> pd.DataFrame:
+def get_link_test_df() -> pd.DataFrame:
     return pd.DataFrame(
         {
             "eid": ["Eid1", "Eid2", "Eid3", "Eid4"],
@@ -81,7 +81,7 @@ def get_link_df_test() -> pd.DataFrame:
     )
 
 
-def get_routes_test() -> pd.DataFrame:
+def get_routes_test_df() -> pd.DataFrame:
     data = {
         "affiliation_id_from": [8, 8, 8, 1, 9, 9, 1, 10, 1, 1],
         "affiliation_id_to": [9, 10, 11, 8, 10, 11, 9, 11, 10, 11],
@@ -90,6 +90,21 @@ def get_routes_test() -> pd.DataFrame:
     df = pd.DataFrame(data)
 
     return df
+
+
+def get_impact_country_test_df() -> pd.DataFrame:
+    data = [
+        {"eid": "P1", "authors_countries": "Austria;Germany;Austria", "hazen_perc_med": 90},
+        {"eid": "P2", "authors_countries": "Austria;Austria", "hazen_perc_med": 70},
+        {"eid": "P3", "authors_countries": "Germany;Switzerland", "hazen_perc_med": 80},
+        {"eid": "P4", "authors_countries": "Austria;Germany;Switzerland", "hazen_perc_med": 85},
+    ]
+
+    df = pd.DataFrame(data)
+
+    df["country_list"] = df["authors_countries"].str.split(";")
+    exploded_df = df.explode("country_list").rename(columns={"country_list": "country"})
+    return exploded_df
 
 
 @pytest.fixture(name="article_df")
@@ -109,9 +124,14 @@ def fixture_impact_df() -> pd.DataFrame:
 
 @pytest.fixture(name="link_df")
 def fixture_link_df() -> pd.DataFrame:
-    return get_link_df_test()
+    return get_link_test_df()
 
 
 @pytest.fixture(name="route_df")
 def fixture_route_df() -> pd.DataFrame:
-    return get_routes_test()
+    return get_routes_test_df()
+
+
+@pytest.fixture(name="impact_country_test_df")
+def fixture_impact_country_test_df() -> pd.DataFrame:
+    return get_impact_country_test_df()

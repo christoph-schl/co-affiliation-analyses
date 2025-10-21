@@ -8,14 +8,13 @@ from src.mma.constants import (
     HAZEN_PERCENTILE_COLUMN,
     ITEM_ID_COLUMN,
     MWPR_COLUMN,
-    ORGANISATION_TYPE_COLUMN,
 )
 
 _logger = structlog.getLogger(__name__)
 
 _SAMPLES_COLUMN = "samples"
 _WEIGHT_COLUMN = "weight"
-_GROUP_COUNT_COLUMN = "n_orgs"
+_GROUP_COUNT_COLUMN = "n_groups"
 
 
 def merge_impact_measures_to_nodes(
@@ -55,13 +54,19 @@ def merge_impact_measures_to_nodes(
     return node_df
 
 
-def _add_weights(df: pd.DataFrame, group_column: str) -> None:
-    df[_GROUP_COUNT_COLUMN] = df.groupby([group_column])[ORGANISATION_TYPE_COLUMN].transform(len)
+def add_weights(df: pd.DataFrame, group_column: str) -> None:
+    """
+    Adds fractional contributions (`weights`) to the pandas DataFrame.
+    :param df: The pandas DataFrame.
+    :param group_column: The column name of the `group_column`.
+    :return: The pandas DataFrame with `weights` added.
+    """
+    df[_GROUP_COUNT_COLUMN] = df.groupby([group_column])[group_column].transform(len)
     df[_WEIGHT_COLUMN] = 1 / df[_GROUP_COUNT_COLUMN]
 
 
 def get_mean_weighted_percentile_ranks(
-    df: pd.DataFrame, group_column: str, min_samples: int
+    df: pd.DataFrame, group_column: str, min_samples: int = 0
 ) -> pd.DataFrame:
     """
     Computes the Mean Weighted Percentile Rank (mwPR) for each group (`group column`e) using
@@ -101,7 +106,7 @@ def get_mean_weighted_percentile_ranks(
     """
 
     # add weights to DataFrame
-    _add_weights(df=df, group_column=group_column)
+    add_weights(df=df, group_column=group_column)
 
     df[_SAMPLES_COLUMN] = df.groupby(group_column)[group_column].transform("count")
     df = df[df[_SAMPLES_COLUMN] >= min_samples].reset_index(drop=True)
