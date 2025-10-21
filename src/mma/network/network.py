@@ -10,6 +10,8 @@ import structlog
 from src.mma.constants import (
     ARTICLE_AFFILIATION_ID_COLUMN,
     ARTICLE_AFFILIATION_INDEX_COLUMN,
+    LEVEL_2_CLASSIFICATION,
+    ORGANISATION_TYPE_COLUMN,
     UNMAPPED_AFFILIATION_ID_COLUMN,
 )
 from src.mma.dataframe.models.affiliation import AffiliationSchema
@@ -31,6 +33,7 @@ _logger = structlog.getLogger()
 
 _ARTICLE_ID_COLUMN = "article_id"
 _MULTIPLE_AFFILIATION_SEPARATOR = "-"
+_ORG_TYPE_OTHER = "other"
 
 
 class MissingEdgeGraphError(RuntimeError):
@@ -309,6 +312,7 @@ class AffiliationNetworkProcessor:
         self._link_gdf = retain_affiliation_links_with_min_year_gap(
             link_gdf=self._link_gdf, min_year_gap=self.min_year_gap
         )
+        self._reclassify_link_org_types()
         self.link = self._link_gdf
 
     def _create_affiliation_graph(self, min_edge_weight: Optional[int] = None) -> None:
@@ -324,3 +328,17 @@ class AffiliationNetworkProcessor:
                 link_gdf=self._link_gdf, min_weight=self.min_edge_weight
             )
             self.edge = self._edge_graph
+
+    def _reclassify_link_org_types(self) -> None:
+        self.link.loc[self.link[ORGANISATION_TYPE_COLUMN].isnull(), ORGANISATION_TYPE_COLUMN] = (
+            _ORG_TYPE_OTHER
+        )
+        self.link[ORGANISATION_TYPE_COLUMN] = self.link[ORGANISATION_TYPE_COLUMN].apply(
+            lambda x: LEVEL_2_CLASSIFICATION[x]
+        )
+
+        org_type_to = f"{ORGANISATION_TYPE_COLUMN}_to"
+        if org_type_to in self.link.columns:
+            self.link[org_type_to] = self.link[org_type_to].apply(
+                lambda x: LEVEL_2_CLASSIFICATION[x]
+            )

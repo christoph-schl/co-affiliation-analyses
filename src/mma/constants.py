@@ -62,3 +62,29 @@ MWPR_COLUMN = "mwPR"
 AFFILIATION_CLASS_COLUMN = "affiliation_class"
 
 EID_COLUMN = "eid"
+
+# link organisation type reclassification
+LEVEL_2_CLASSIFICATION = {
+    "hosp": "hosp",
+    "comp": "comp",
+    "resi": "resi",
+    "ngo": "ngo",
+    "univ|resi": "univ",
+    "gov|resi": "resi",
+    "univ": "univ",
+    "comp|univ": "univ",
+    "gov": "gov",
+    "comp|resi": "resi",
+    "meds|resi": "resi",
+    "coll": "coll",
+    "univ|hosp": "univ",
+    "hosp|resi": "hosp",
+    "hosp|univ": "univ",
+    "gov|gov": "univ",
+    "museum": "museum",
+    "coll|resi": "coll",
+    "ngo|resi": "resi",
+    "meds|ngo": "ngo",
+    "milo": "milo",
+    "other": "other",
+}
