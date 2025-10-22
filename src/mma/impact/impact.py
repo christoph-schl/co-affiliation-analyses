@@ -4,11 +4,12 @@ from typing import Optional
 import geopandas as gpd
 import pandas as pd
 
+from src.mma.constants import ORG_TYPE_FILTER_LIST
 from src.mma.impact.utils import (
     get_mean_weighted_percentile_ranks,
     merge_impact_measures_to_nodes,
 )
-from src.mma.utils.utils import get_link_nodes
+from src.mma.utils.utils import filter_organization_types, get_link_nodes
 
 
 @dataclass
@@ -55,6 +56,10 @@ class Impact:
     _node_df: Optional[pd.DataFrame] = field(default=None, init=False)
 
     def __post_init__(self) -> None:
+
+        # filter organisation types
+        self.link_gdf = filter_organization_types(df=self.link_gdf, org_types=ORG_TYPE_FILTER_LIST)
+
         self._node_df = get_link_nodes(link_gdf=self.link_gdf)
         self._node_df = merge_impact_measures_to_nodes(
             node_df=self._node_df, impact_df=self.impact_df

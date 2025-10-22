@@ -163,14 +163,34 @@ def _compute_mwpr_for_class(
     mwpr_class = get_mean_weighted_percentile_ranks(
         df=df_class, group_column=group_column, min_samples=0
     )
-    return mwpr_class[mwpr_class.preferred_name.isin(filter_names)].reset_index(drop=True)
+    return mwpr_class[mwpr_class[group_column].isin(filter_names)].reset_index(drop=True)
 
 
 @dataclass
 class AffiliationMwpr:
+    """
+    Container for mwPR results computed by affiliation group.
+    """
+
     all: pd.DataFrame
     first: pd.DataFrame
     last: pd.DataFrame
+
+    def to_concatenated(self) -> pd.DataFrame:
+        """
+        Concatenate all mwPR DataFrames into a single DataFrame with an additional column
+        indicating the group source ('all', 'first', or 'last').
+
+        :return: A concatenated pandas DataFrame with a `group_type` column.
+        """
+        return pd.concat(
+            [
+                self.all,
+                self.first,
+                self.last,
+            ],
+            ignore_index=True,
+        ).round(decimals=2)
 
 
 def compute_mwpr_for_affiliation_class(
@@ -178,7 +198,7 @@ def compute_mwpr_for_affiliation_class(
     n_groups: int,
     min_samples: int = 0,
     group_column: str = "preferred_name",
-) -> pd.DataFrame:
+) -> AffiliationMwpr:
     """
     Compute mwPR for all affiliations as well as for first and last author affiliations.
 
@@ -196,7 +216,7 @@ def compute_mwpr_for_affiliation_class(
     mwpr_all[AFFILIATION_CLASS_COLUMN] = AffiliationType.ALL.value
 
     # Keep list of affiliation names for filtering
-    affiliation_names = mwpr_all.preferred_name.tolist()
+    affiliation_names = mwpr_all[group_column].tolist()
 
     # --- Compute mwPR for first and last authors ---
     mwpr_first = _compute_mwpr_for_class(
@@ -215,7 +235,6 @@ def compute_mwpr_for_affiliation_class(
     )
     mwpr_last[AFFILIATION_CLASS_COLUMN] = AffiliationType.LAST.value
 
-    mwpr = pd.concat([mwpr_all, mwpr_first, mwpr_last])
-    mwpr[MWPR_COLUMN] = mwpr[MWPR_COLUMN].round(decimals=2)
+    mwpr = AffiliationMwpr(all=mwpr_all, first=mwpr_first, last=mwpr_last)
 
     return mwpr

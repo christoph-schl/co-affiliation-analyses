@@ -12,10 +12,12 @@ from matplotlib.patches import Patch
 
 from src.mma.constants import (
     AFFILIATION_CLASS_COLUMN,
+    HAZEN_PERCENTILE_COLUMN,
     MWPR_COLUMN,
+    ORGANISATION_TYPE_COLUMN,
     PREFERRED_AFFILIATION_NAME_COLUMN,
 )
-from src.mma.impact.utils import AffiliationType
+from src.mma.impact.utils import AffiliationMwpr, AffiliationType
 
 _N_ROWS = 2
 _N_COLS = 2
@@ -24,6 +26,23 @@ _COLOR_PALETTE: Dict[str, str] = {
     AffiliationType.ALL.value: "#696969",  # grey
     AffiliationType.FIRST.value: "#1f77b4",  # blue
     AffiliationType.LAST.value: "#ff7f0e",  # orange
+}
+
+# Constants for marker styling
+_MARKER_STYLE = {
+    "color": "k",
+    "facecolors": "none",
+    "edgecolors": "black",
+    "linewidths": 1,
+    "marker": "D",
+    "s": 50,
+    "zorder": 3,
+}
+
+_OFFSET_MAP = {
+    "all": 0.0,
+    "first": -0.2,
+    "last": 0.2,
 }
 
 
@@ -347,4 +366,98 @@ def plot_bar(ax: plt.Axes, data: pd.DataFrame, y_order: List[str]) -> None:
     plt.setp(ax.get_yticklabels(), rotation=45, ha="right")
     # remove per-axis legend; we'll add a single figure legend later
     if getattr(ax, "legend_", None):
+        ax.legend_.remove()
+
+
+def add_mwpr_marker(
+    axes: plt.Axes, mwpr: pd.DataFrame, mwpr_type: str, org_types: List[str]
+) -> None:
+    """
+    Add markers to the violine plots to highlight the mwPR
+    (first, all, last) for each organization type.
+
+    :param axes: The matplotlib Axes to draw the markers on.
+    :param mwpr: The DataFrame with mwPR values.
+    :param mwpr_type: Type of mwPR marker to plot ('all', 'first', 'last').
+    :param org_types: Ordered list of organization types corresponding to x-axis positions.
+    :return: None
+    """
+    offset = _OFFSET_MAP.get(mwpr_type)
+    if offset is None:
+        raise ValueError(
+            f"Invalid mwpr_type '{mwpr_type}'. " f"Expected one of {list(_OFFSET_MAP.keys())}."
+        )
+
+    mwpr_dict = mwpr.set_index(ORGANISATION_TYPE_COLUMN)[MWPR_COLUMN].to_dict()
+    for position, org_type in enumerate(org_types):
+        mwpr_value = mwpr_dict.get(org_type)
+        if mwpr_value is None:
+            continue
+
+        axes.scatter(position + offset, mwpr_value, **_MARKER_STYLE)
+
+
+def plot_violine(
+    ax: plt.Axes, nodes_df: pd.DataFrame, mwpr: AffiliationMwpr, org_type_order: List[str]
+) -> None:
+    """
+    Plot violin distributions of Hazen percentiles for each organisation type and
+    annotate the plot with mwPR markers for 'all', 'first' and 'last' groups.
+
+    :param ax: Matplotlib Axes to draw the plot on.
+    :param nodes_df: DataFrame containing the raw node records (must include columns
+                     referenced by `org_type` and `hazen_perc_med` columns).
+    :param mwpr: AffiliationMwpr dataclass containing `all`, `first`, and `last` DataFrames
+                 (each mapping organisation types to mwPR values).
+    :param org_type_order: Ordered list of organisation types controlling x-axis order.
+    """
+
+    # 1) draw split/hue violins per affiliation class (colored, split)
+    sns.violinplot(
+        data=nodes_df,
+        x=ORGANISATION_TYPE_COLUMN,
+        y=HAZEN_PERCENTILE_COLUMN,
+        hue=AFFILIATION_CLASS_COLUMN,
+        split=True,
+        inner="quart",
+        order=org_type_order,
+        width=1,
+        cut=0,
+        density_norm="width",
+        saturation=1,
+        ax=ax,
+        bw_adjust=0.8,
+        gap=0.2,
+    )
+
+    # 2) overlay a neutral outline violin for emphasis (no fill)
+    sns.violinplot(
+        data=nodes_df,
+        x=ORGANISATION_TYPE_COLUMN,
+        y=HAZEN_PERCENTILE_COLUMN,
+        order=org_type_order,
+        inner="quart",
+        color="darkgrey",
+        width=1,
+        cut=0,
+        density_norm="width",
+        ax=ax,
+        bw_adjust=0.8,
+        saturation=1,
+        linewidth=2,
+        fill=False,
+    )
+
+    ax.tick_params(axis="x", labelsize=12)
+    ax.tick_params(axis="y", labelsize=12)
+
+    for mwpr_type in ("all", "first", "last"):
+        add_mwpr_marker(
+            axes=ax,
+            mwpr=getattr(mwpr, mwpr_type),
+            mwpr_type=mwpr_type,
+            org_types=org_type_order,
+        )
+
+    if ax.legend_ is not None:
         ax.legend_.remove()

@@ -120,22 +120,24 @@ def filter_links_by_country(link_gdf: gpd.GeoDataFrame, country_filter: str) -> 
     return link_gdf
 
 
-def filter_organization_types(edge_gdf: gpd.GeoDataFrame, org_types: List[str]) -> gpd.GeoDataFrame:
+def filter_organization_types(
+    df: Union[pd.DataFrame, gpd.GeoDataFrame], org_types: List[str]
+) -> Union[pd.DataFrame, gpd.GeoDataFrame]:
     """
     Keep only rows where BOTH organization type columns (`org_typ` and `org_type_to`) are in the
     provided list.
-    :param edge_gdf: The edge GeoDataFrame.
+    :param df: The edge or link Geo- (DataFrame).
     :param org_types: The given list of organization types.
     :return: The filtered GeoDataFrame.
     """
 
-    mask = (edge_gdf[constants.ORGANISATION_TYPE_COLUMN].isin(org_types)) & (
-        edge_gdf[f"{constants.ORGANISATION_TYPE_COLUMN}_to"].isin(org_types)
+    mask = (df[constants.ORGANISATION_TYPE_COLUMN].isin(org_types)) & (
+        df[f"{constants.ORGANISATION_TYPE_COLUMN}_to"].isin(org_types)
     )
-    filtered_gdf = edge_gdf[mask].copy()
+    filtered_gdf = df[mask].copy()
 
     kept_count = len(filtered_gdf)
-    total_count = len(edge_gdf)
+    total_count = len(df)
     _logger.info(
         f"Kept {kept_count}/{total_count} edges where both organization types are"
         f" in {org_types}"
