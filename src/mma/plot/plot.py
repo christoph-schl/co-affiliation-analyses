@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Mapping, Optional, OrderedDict
 
 import geopandas as gpd
 import pandas as pd
@@ -16,16 +16,17 @@ from src.mma.impact.impact import Impact
 from src.mma.impact.utils import (
     AffiliationMwpr,
     AffiliationType,
+    aggregate_mwpr_over_time,
     compute_mwpr_for_affiliation_class,
     merge_impact_measures_to_nodes,
 )
+from src.mma.plot.configuration import PLOT_CONFIGS
 from src.mma.plot.constants import AFFILIATION_NAME_ALIASES
+from src.mma.plot.grid import PlotGrid
 from src.mma.plot.utils import (
-    Grid,
-    add_legend,
     add_text_labels_to_bars,
-    get_plotting_grid,
     plot_bar,
+    plot_time_series,
     plot_violine,
 )
 from src.mma.utils.utils import filter_organization_types, get_link_nodes
@@ -36,6 +37,29 @@ _COLOR_PALETTE: Dict[str, str] = {
     AffiliationType.LAST.value: "#ff7f0e",  # orange
 }
 _N_GROUPS_ORG_TYPE = 1000
+_TIME_FREQUENCY_YEARS = 1
+
+
+def _build_ordered_label_handle(
+    ax1: plt.Axes, ax2: plt.Axes, preferred_order: List[str]
+) -> Mapping[str, Any]:
+    # get label->handle from each axis
+    dict1 = dict(zip(*ax1.get_legend_handles_labels()))
+    dict2 = dict(zip(*ax2.get_legend_handles_labels()))
+
+    # prefer dict1 values, then dict2
+    merged = dict1.copy()
+    merged.update({k: v for k, v in dict2.items() if k not in merged})
+
+    # order by preferred_order then append leftovers
+    ordered = OrderedDict()
+    for name in preferred_order:
+        if name in merged:
+            ordered[name] = merged[name]
+    for k, v in merged.items():
+        if k not in ordered:
+            ordered[k] = v
+    return ordered
 
 
 def _get_y_order(mwpr: pd.DataFrame, x_column: str, y_column: str) -> List[str]:
@@ -49,22 +73,11 @@ def _get_y_order(mwpr: pd.DataFrame, x_column: str, y_column: str) -> List[str]:
 @dataclass
 class ImpactPlot(Impact):
     filtered_link_gdf: gpd.GeoDataFrame
-    min_samples_org_name: int = 300
-    n_orgs: int = 10
-    _bar_plot_grid: Grid = field(
-        default_factory=lambda: get_plotting_grid(
-            create_hline=False,
-            deactivate_ax2_ylabels=False,
-            figure_size=(12, 6),
-            x_label="mwPR [%]",
-        )
-    )
-    _violine_plot_grid: Grid = field(default_factory=lambda: get_plotting_grid())
+    n_mwpr_units: int = 10
     _filtered_node_df: Optional[pd.DataFrame] = field(default=None, init=False)
-    _mwpr_df_org_name: Optional[pd.DataFrame] = field(default=None, init=False)
-    _mwpr_filtered_df_org_name: Optional[pd.DataFrame] = field(default=None, init=False)
-    _mwpr_df_org_type: Optional[AffiliationMwpr] = field(default=None, init=False)
-    _mwpr_filtered_df_org_type: Optional[AffiliationMwpr] = field(default=None, init=False)
+
+    _mwpr_df: Dict[str, AffiliationMwpr] = field(default_factory=dict, init=False)
+    _mwpr_filtered_df: Dict[str, AffiliationMwpr] = field(default_factory=dict, init=False)
 
     def __post_init__(self) -> None:
         super().__post_init__()
@@ -85,7 +98,12 @@ class ImpactPlot(Impact):
                 lambda x: AFFILIATION_NAME_ALIASES.get(x, x)
             )
 
-    def get_bar_plot(self) -> plt.Figure:
+    def get_bar_plot(
+        self,
+        min_samples: int,
+        group_column: str = PREFERRED_AFFILIATION_NAME_COLUMN,
+        n_groups: int = _N_GROUPS_ORG_TYPE,
+    ) -> PlotGrid:
         """
         Generates a grouped bar plot showing mwPR values
         for different affiliation classes (all, first, or the last affiliation),
@@ -95,65 +113,73 @@ class ImpactPlot(Impact):
         values are calculated separately for the full dataset and a filtered subset, allowing
         side-by-side comparison in the resulting bar plot.
 
-        :return:
-            A matplotlib Figure object containing the completed bar plot visualization.
+        :param min_samples: Minimum number of samples required for a group to be included.
+        :param group_column: Column name used to group nodes (e.g., "org_type" or "preferred_name").
+        :param n_groups: Number of top groups to include in the plot.
+        :return: A PlotGrid object containing the figure and two subplot axes.
         """
 
-        self._compute_org_name_mwprs()
-
-        y_order_ax1 = _get_y_order(
-            mwpr=self._mwpr_df_org_name,
-            x_column=MWPR_COLUMN,
-            y_column=PREFERRED_AFFILIATION_NAME_COLUMN,
-        )
-        y_order_ax2 = _get_y_order(
-            mwpr=self._mwpr_filtered_df_org_name,
-            x_column=MWPR_COLUMN,
-            y_column=PREFERRED_AFFILIATION_NAME_COLUMN,
-        )
+        self._compute_mwprs(group_column=group_column, min_samples=min_samples, n_groups=n_groups)
 
         # plot onto the pre-prepared grid axes
-        self._plot_bars_onto_grid(y_order_ax1=y_order_ax1, y_order_ax2=y_order_ax2)
+        grid = self._plot_bars_onto_grid(group_column=group_column)
 
-        # annotate bars with sample counts
-        self._add_bar_labels(y_order_ax1=y_order_ax1, y_order_ax2=y_order_ax2)
+        return grid
 
-        add_legend(
-            ax=self._bar_plot_grid.ax1,
-            fig=self._bar_plot_grid.fig,
-            add_all_and_mwpr=False,
-            placement="lower center",
-            n_legend_columns=3,
-            fontsize=14,
-            bbox_to_anchor=(0.25, 0.05),
+    def get_timeseries_plot(
+        self,
+        group_column: str,
+        min_samples: int = 0,
+        n_groups: int = _N_GROUPS_ORG_TYPE,
+        time_freq_years: int = _TIME_FREQUENCY_YEARS,
+    ) -> PlotGrid:
+        """
+        Generate a time series plot for the specified group column.
+
+        :param group_column: Column name used to group nodes (e.g., "org_type" or "preferred_name").
+        :param min_samples: Minimum number of samples required for a group to be included.
+        :param n_groups: Number of top groups to include in the plot.
+        :param time_freq_years: Time interval in years for grouping.
+        :return: A PlotGrid object containing the figure and two subplot axes.
+        """
+
+        self._compute_mwprs(group_column=group_column, min_samples=min_samples, n_groups=n_groups)
+        grid = self._plot_time_series_onto_grid(
+            node_df=self._node_df,
+            node_df_filtered=self._filtered_node_df,
+            group_column=group_column,
+            time_freq_years=time_freq_years,
         )
+        return grid
 
-        return self._bar_plot_grid.fig
-
-    def get_violine_plot(self) -> plt.Figure:
+    def get_violine_plot(self, group_column: str = ORGANISATION_TYPE_COLUMN) -> PlotGrid:
         """
         Plot violin distributions of Hazen percentiles for each organisation type and
         annotate the plot with mwPR markers for 'all', 'first' and 'last' groups.
 
-         :return:
-            A matplotlib Figure object containing the completed violine plot visualization.
+        :param group_column: Column name used to group nodes (e.g., "org_type" or "preferred_name").
+        :return: A PlotGrid containing the completed violine plot visualization.
         """
 
-        self._compute_org_type_mwprs()
+        self._compute_mwprs(group_column=group_column)
 
+        grid = self._plot_violins_onto_grid(group_column)
+
+        return grid
+
+    def _plot_violins_onto_grid(self, group_column: str) -> PlotGrid:
         # preserve a stable ordering for the categories
         org_type_order = []
-        if self._mwpr_df_org_type is not None:
-            org_type_order = list(self._mwpr_df_org_type.all[ORGANISATION_TYPE_COLUMN])
-
-        grid = self._violine_plot_grid
-
+        if self._mwpr_df[group_column] is not None:
+            org_type_order = list(self._mwpr_df[group_column].all[ORGANISATION_TYPE_COLUMN])
+        # get grid from config
+        config_key = f"violine_by_{group_column}"
+        grid = PlotGrid.from_plot_name(config_key)
         # pair axes with the DataFrames we want to visualise
         axes_and_data = (
-            (grid.ax1, self._node_df, self._mwpr_df_org_type),
-            (grid.ax2, self._filtered_node_df, self._mwpr_filtered_df_org_type),
+            (grid.ax1, self._node_df, self._mwpr_df[group_column]),
+            (grid.ax2, self._filtered_node_df, self._mwpr_filtered_df[group_column]),
         )
-
         for ax, nodes_df, mwpr_df in axes_and_data:
             if mwpr_df is not None:
                 plot_violine(
@@ -163,63 +189,108 @@ class ImpactPlot(Impact):
                     org_type_order=org_type_order,
                 )
 
-        # remove individual x-labels since the grid controls overall labeling
-        ax.set_xlabel(None)
-
+            # remove individual x-labels since the grid controls overall labeling
+            ax.set_xlabel(None)
         # Labeling and legend belong to the grid-level axes
         grid.ax1.set_ylabel("Hazen percentile [%]", labelpad=0, fontsize=14)
         grid.ax2.set_ylabel(None)
+        legend_config = PLOT_CONFIGS[config_key].legend
+        grid.add_legends_from_plot_config(config=legend_config)
+        return grid
 
-        add_legend(ax=grid.ax1, fig=grid.fig, n_legend_columns=4)
+    def _plot_bars_onto_grid(
+        self,
+        group_column: str = PREFERRED_AFFILIATION_NAME_COLUMN,
+    ) -> PlotGrid:
 
-        return grid.fig
+        # get grid from config
+        config_key = f"barplot_by_{group_column}"
+        grid = PlotGrid.from_plot_name(config_key)
 
-    def _add_bar_labels(self, y_order_ax1: List[str], y_order_ax2: List[str]) -> None:
-        add_text_labels_to_bars(
-            df=self._mwpr_df_org_name,
-            ax=self._bar_plot_grid.ax1,
-            y_column=PREFERRED_AFFILIATION_NAME_COLUMN,
-            y_order=y_order_ax1,
-        )
-        add_text_labels_to_bars(
-            df=self._mwpr_filtered_df_org_name,
-            ax=self._bar_plot_grid.ax2,
-            y_column=PREFERRED_AFFILIATION_NAME_COLUMN,
-            y_order=y_order_ax2,
-        )
+        for mwpr, ax in [
+            (self._mwpr_df[group_column].to_concatenated(), grid.ax1),
+            (self._mwpr_filtered_df[group_column].to_concatenated(), grid.ax2),
+        ]:
+            y_order = _get_y_order(
+                mwpr=mwpr,
+                x_column=MWPR_COLUMN,
+                y_column=PREFERRED_AFFILIATION_NAME_COLUMN,
+            )
 
-    def _plot_bars_onto_grid(self, y_order_ax1: List[str], y_order_ax2: List[str]) -> None:
-        plot_bar(ax=self._bar_plot_grid.ax1, data=self._mwpr_df_org_name, y_order=y_order_ax1)
-        plot_bar(
-            ax=self._bar_plot_grid.ax2, data=self._mwpr_filtered_df_org_name, y_order=y_order_ax2
-        )
+            plot_bar(ax=ax, data=mwpr, y_order=y_order)
 
-    def _compute_org_name_mwprs(self) -> None:
-        self._mwpr_df_org_name = compute_mwpr_for_affiliation_class(
+            add_text_labels_to_bars(
+                df=mwpr,
+                ax=ax,
+                y_column=PREFERRED_AFFILIATION_NAME_COLUMN,
+                y_order=y_order,
+            )
+
+        legend_config = PLOT_CONFIGS[config_key].legend
+        grid.add_legends_from_plot_config(config=legend_config)
+
+        return grid
+
+    def _compute_mwprs(
+        self,
+        min_samples: int = 0,
+        group_column: str = ORGANISATION_TYPE_COLUMN,
+        n_groups: int = _N_GROUPS_ORG_TYPE,
+    ) -> None:
+        self._mwpr_df[group_column] = compute_mwpr_for_affiliation_class(
             node_df=self._node_df,
-            n_groups=self.n_orgs,
-            group_column=PREFERRED_AFFILIATION_NAME_COLUMN,
-            min_samples=self.min_samples_org_name,
-        ).to_concatenated()
-
-        self._mwpr_filtered_df_org_name = compute_mwpr_for_affiliation_class(
-            node_df=self._filtered_node_df,
-            n_groups=self.n_orgs,
-            group_column=PREFERRED_AFFILIATION_NAME_COLUMN,
-            min_samples=self.min_samples_org_name,
-        ).to_concatenated()
-
-    def _compute_org_type_mwprs(self) -> None:
-        self._mwpr_df_org_type = compute_mwpr_for_affiliation_class(
-            node_df=self._node_df,
-            n_groups=_N_GROUPS_ORG_TYPE,
-            group_column=ORGANISATION_TYPE_COLUMN,
-            min_samples=0,
+            n_groups=n_groups,
+            group_column=group_column,
+            min_samples=min_samples,
         )
 
-        self._mwpr_filtered_df_org_type = compute_mwpr_for_affiliation_class(
+        self._mwpr_filtered_df[group_column] = compute_mwpr_for_affiliation_class(
             node_df=self._filtered_node_df,
-            n_groups=_N_GROUPS_ORG_TYPE,
-            group_column=ORGANISATION_TYPE_COLUMN,
-            min_samples=0,
+            n_groups=n_groups,
+            group_column=group_column,
+            min_samples=min_samples,
         )
+
+    def _plot_time_series_onto_grid(
+        self,
+        node_df: pd.DataFrame,
+        node_df_filtered: pd.DataFrame,
+        group_column: str,
+        time_freq_years: int = _TIME_FREQUENCY_YEARS,
+    ) -> PlotGrid:
+
+        # aggregate nodes over time
+        time_nodes = aggregate_mwpr_over_time(
+            node_df=node_df, group_column=group_column, time_freq=time_freq_years
+        )
+        time_nodes_filtered = aggregate_mwpr_over_time(
+            node_df=node_df_filtered, group_column=group_column, time_freq=time_freq_years
+        )
+
+        # get grid from config
+        config_key = f"timeseries_by_{group_column}"
+        grid = PlotGrid.from_plot_name(config_key)
+
+        # filter and plot aggregated nodes
+        group_list = self._mwpr_df[group_column].groups
+        for time_nodes, ax in [(time_nodes, grid.ax1), (time_nodes_filtered, grid.ax2)]:
+
+            # filter top n units (e.g., preferred_name or org_type)
+            time_nodes = time_nodes[time_nodes[group_column].isin(group_list)].reset_index(
+                drop=True
+            )
+
+            plot_time_series(df=time_nodes, axes=ax, group_column=group_column)
+            ax.set_ylim(20, 100)
+            ax.legend_.remove()
+
+        # build handles for legend
+        preferred_order = list(time_nodes[group_column].unique())
+        label_handle = _build_ordered_label_handle(
+            ax1=grid.ax1, ax2=grid.ax2, preferred_order=preferred_order
+        )
+
+        legend_config = PLOT_CONFIGS[config_key].legend
+        grid.add_legends_from_plot_config(config=legend_config, label_handle=label_handle)
+
+        return grid

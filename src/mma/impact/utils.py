@@ -1,5 +1,6 @@
 import enum
 from dataclasses import dataclass
+from typing import List
 
 import numpy as np
 import pandas as pd
@@ -8,6 +9,7 @@ import structlog
 from src.mma.constants import (
     AFFILIATION_CLASS_COLUMN,
     CLASS_NAME_COLUMN,
+    COVER_DATE_COLUMN,
     EID_COLUMN,
     HAZEN_PERCENTILE_COLUMN,
     ITEM_ID_COLUMN,
@@ -176,6 +178,10 @@ class AffiliationMwpr:
     first: pd.DataFrame
     last: pd.DataFrame
 
+    @property
+    def groups(self) -> List[str]:
+        return self.all.iloc[:, 0].tolist()
+
     def to_concatenated(self) -> pd.DataFrame:
         """
         Concatenate all mwPR DataFrames into a single DataFrame with an additional column
@@ -238,3 +244,48 @@ def compute_mwpr_for_affiliation_class(
     mwpr = AffiliationMwpr(all=mwpr_all, first=mwpr_first, last=mwpr_last)
 
     return mwpr
+
+
+def aggregate_mwpr_over_time(
+    node_df: pd.DataFrame,
+    group_column: str,
+    time_freq: int,
+) -> pd.DataFrame:
+    """
+    Compute mean weighted percentile ranks (MWPR) over time intervals.
+
+    Groups the input DataFrame by time periods of `time_freq` years,
+    computes MWPR within each group, and assigns each period its midpoint date.
+
+    :param node_df: Input DataFrame containing the COVER_DATE_COLUMN and group_column.
+    :param group_column: Column name used for grouping in MWPR computation.
+    :param time_freq: Time interval in years for grouping.
+    :return: DataFrame of MWPR values with midpoints for each time interval.
+    """
+
+    df = node_df.copy()
+
+    # Group by time intervals of given frequency starting each January
+    grouped = df.groupby(
+        pd.Grouper(
+            key=COVER_DATE_COLUMN,
+            freq=f"{time_freq}YS-JAN",
+            origin="start",
+        )
+    )
+
+    # Compute MWPR per time period
+    result = grouped.apply(
+        lambda g: get_mean_weighted_percentile_ranks(
+            df=g,
+            group_column=group_column,
+            min_samples=0,
+        ),
+        include_groups=False,
+    ).reset_index()
+
+    # Shift date to the midpoint of the time interval
+    midpoint_offset = pd.DateOffset(months=int(time_freq * 12 / 2))
+    result[COVER_DATE_COLUMN] += midpoint_offset
+
+    return result

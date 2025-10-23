@@ -12,8 +12,10 @@ from matplotlib.patches import Patch
 
 from src.mma.constants import (
     AFFILIATION_CLASS_COLUMN,
+    COVER_DATE_COLUMN,
     HAZEN_PERCENTILE_COLUMN,
     MWPR_COLUMN,
+    ORG_TYPE_COLORS,
     ORGANISATION_TYPE_COLUMN,
     PREFERRED_AFFILIATION_NAME_COLUMN,
 )
@@ -124,7 +126,6 @@ def add_text_labels_to_bars(
     df: pd.DataFrame,
     ax: plt.Axes,
     *,
-    # hue_order: Sequence[str],
     y_order: Sequence[str],
     y_column: str,
     hue_column: str = "affiliation_class",
@@ -461,3 +462,130 @@ def plot_violine(
 
     if ax.legend_ is not None:
         ax.legend_.remove()
+
+
+def _to_matplotlib_color(col: Any) -> Any:
+    """
+    Convert a color value into something matplotlib accepts.
+
+    Handles:
+    - objects with .red/.green/.blue in 0-255 range,
+    - already-valid matplotlib color strings or RGB tuples,
+    - anything else is returned unchanged (matplotlib will error if invalid).
+    """
+    # color-like object with .red/.green/.blue attributes (0-255)
+    if hasattr(col, "red") and hasattr(col, "green") and hasattr(col, "blue"):
+        return col.red / 255.0, col.green / 255.0, col.blue / 255.0
+    # tuple/list of ints 0-255
+    if (
+        isinstance(col, (tuple, list))
+        and len(col) == 3
+        and all(isinstance(v, (int, float)) for v in col)
+    ):
+        # if ints in 0-255 convert to 0-1
+        if max(col) > 1:
+            return tuple(v / 255.0 for v in col)
+        return tuple(col)
+
+    # otherwise assume matplotlib can handle it (named color, hex, rgb in 0-1, etc.)
+    return col
+
+
+def plot_time_series(
+    df: pd.DataFrame,
+    group_column: str = ORGANISATION_TYPE_COLUMN,
+    axes: Optional[plt.Axes] = None,
+    *,
+    figsize: Tuple[int, int] = (10, 6),
+    linewidth: float = 3.5,
+    marker: str = "o",
+    marker_size: int = 7,
+    legend_ncol_default: int = 2,
+) -> Tuple[plt.Figure, plt.Axes]:
+    """
+    Plot mwPR time series pivoted by group column.
+    :param df: DataFrame that must contain COVER_DATE_COLUMN, group_column and MWPR_COLUMN.
+    :param group_column: Column used to pivot the data into separate time series.
+    :param axes: Optional axis to draw on. If None, a new figure/axis is created.
+    :param figsize: Figure size used when creating a new figure.
+    :param linewidth: Line width for series.
+    :param marker: Marker style for points.
+    :param marker_size: Size of the markers.
+    :param legend_ncol_default: Default number of legend columns when group_column != 'org_type'.
+    :return: The matplotlib Figure and Axes used.
+    """
+
+    df = df.copy()
+
+    # Pivot into time-indexed series matrix
+    if COVER_DATE_COLUMN not in df.columns:
+        raise ValueError(f"DataFrame must contain column '{COVER_DATE_COLUMN}'")
+    if MWPR_COLUMN not in df.columns:
+        raise ValueError(f"DataFrame must contain column '{MWPR_COLUMN}'")
+
+    # ensure datetime index / column
+    df[COVER_DATE_COLUMN] = pd.to_datetime(df[COVER_DATE_COLUMN])
+    pivot = df.pivot(index=COVER_DATE_COLUMN, columns=group_column, values=MWPR_COLUMN).sort_index()
+
+    # Build color map for org types (convert to matplotlib-friendly colors)
+    org_type_colors_rgb: Dict[str, Any] = (
+        {k: _to_matplotlib_color(v) for k, v in ORG_TYPE_COLORS.items()}
+        if group_column == ORGANISATION_TYPE_COLUMN and "ORG_TYPE_COLORS" in globals()
+        else {}
+    )
+
+    # Create (or accept) axes
+    if axes is None:
+        fig, ax = plt.subplots(figsize=figsize)
+    else:
+        ax = axes
+        fig = ax.get_figure()
+
+    x = pivot.index
+
+    # Plot each column with consistent styling
+    for col in pivot.columns:
+        y = pivot[col].values
+        # Skip entirely NaN series
+        if pd.isna(y).all():
+            continue
+
+        # Choose color only if we have a mapping and we're plotting org_type
+        color = None
+        if group_column == ORGANISATION_TYPE_COLUMN:
+            color = org_type_colors_rgb.get(col, "gray")
+
+        ax.plot(
+            x,
+            y,
+            linewidth=linewidth,
+            marker=marker,
+            markersize=marker_size,
+            label=str(col),
+            color=color,
+            solid_capstyle="round",
+        )
+
+    # Reference line at 50
+    ax.axhline(50, color="grey", linewidth=2.0, linestyle="--", zorder=0)
+
+    # Styling
+    ax.grid(axis="x", linestyle="--", alpha=0.7)
+    ax.grid(axis="y", visible=False)
+    ax.set_xlabel("")  # keep caller free to set if desired
+    ax.set_ylabel("mwPR(F) [%]")
+
+    # Legend layout (tuned for org_type vs other groupings)
+    ncol = 7 if group_column == ORGANISATION_TYPE_COLUMN else legend_ncol_default
+    ax.legend(
+        loc="upper center",
+        bbox_to_anchor=(0.5, -0.12),
+        ncol=ncol,
+        frameon=False,
+    )
+
+    # If we created the figure, make room for the legend
+    if axes is None:
+        fig.subplots_adjust(bottom=0.22)
+
+    return fig, ax

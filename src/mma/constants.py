@@ -1,4 +1,5 @@
 import os
+from collections import namedtuple
 
 # affiliation column names
 AFFILIATION_ID_COLUMN = "affiliation_id"
@@ -60,6 +61,19 @@ MWPR_COLUMN = "mwPR"
 
 # plot
 AFFILIATION_CLASS_COLUMN = "affiliation_class"
+
+Color = namedtuple("Color", ["red", "green", "blue"])
+ORG_TYPE_COLORS = {
+    "univ": Color(128, 0, 128),
+    "resi": Color(0, 106, 113),
+    "hosp": Color(51, 78, 255),
+    "comp": Color(70, 236, 250),
+    "coll": Color(255, 127, 0),
+    "ngo": Color(34, 153, 84),
+    "museum": Color(156, 34, 227),
+    "gov": Color(242, 36, 17),
+    "milo": Color(178, 34, 34),
+}
 
 EID_COLUMN = "eid"
 
