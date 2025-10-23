@@ -10,17 +10,24 @@ from src.mma.constants import (
     AFFILIATION_CLASS_COLUMN,
     CLASS_NAME_COLUMN,
     COVER_DATE_COLUMN,
+    DEFAULT_MAX_WORKERS_PARALLEL_PROCESSING,
     EID_COLUMN,
     HAZEN_PERCENTILE_COLUMN,
     ITEM_ID_COLUMN,
     MWPR_COLUMN,
 )
+from src.mma.utils.wrappers import get_execution_time, parallelize_dataframe
 
 _logger = structlog.getLogger(__name__)
 
 _SAMPLES_COLUMN = "samples"
 _WEIGHT_COLUMN = "weight"
 _GROUP_COUNT_COLUMN = "n_groups"
+_INDEX_COLUMN = "df_index"
+_MIN_INDEX_COLUMN = "min_index"
+_MAX_INDEX_COLUMN = "max_index"
+_MWPR_INDEX_COLUMN = "mwpr_index"
+_CHUNK_SIZE_PARALLEL_PROCESSING = 15
 
 
 class AffiliationType(enum.Enum):
@@ -289,3 +296,106 @@ def aggregate_mwpr_over_time(
     result[COVER_DATE_COLUMN] += midpoint_offset
 
     return result
+
+
+def _get_rolling_mwpr(
+    index_df: pd.DataFrame, node_df: pd.DataFrame, group_column: str
+) -> pd.DataFrame:
+
+    node_df = node_df.loc[index_df.min_index.min() : index_df.max_index.max()].copy()  # noqa: E203
+    index_df[_MWPR_INDEX_COLUMN] = index_df.apply(
+        lambda x: list(range(x.min_index, x.max_index + 1)), axis=1
+    )
+    index_df = index_df.explode(column=_MWPR_INDEX_COLUMN, ignore_index=True)
+
+    index_df = index_df.merge(
+        right=node_df, left_on=_MWPR_INDEX_COLUMN, right_index=True, how="left", suffixes=("", "_n")
+    ).drop(columns=[f"{_INDEX_COLUMN}_n", _MWPR_INDEX_COLUMN])
+
+    grouped = index_df.groupby(_INDEX_COLUMN)
+    index_df = grouped.apply(
+        lambda g: get_mean_weighted_percentile_ranks(
+            df=g, group_column=group_column, min_samples=0
+        ).assign(
+            df_index=g.name
+        ),  # attach the group name
+        include_groups=False,
+    ).reset_index(drop=True)
+
+    return index_df
+
+
+@get_execution_time
+def _get_dict_df(nodes_df: pd.DataFrame, time_window: str) -> pd.DataFrame:
+    columns = [COVER_DATE_COLUMN, _INDEX_COLUMN]
+    index_dict_list = []
+    for idx, roll in enumerate(
+        nodes_df[columns].rolling(window=time_window, on=COVER_DATE_COLUMN, center=True)
+    ):
+        subset_df = roll.copy()
+
+        index_dict_list.append(
+            {
+                _INDEX_COLUMN: idx,
+                _MIN_INDEX_COLUMN: subset_df.df_index.min(),
+                _MAX_INDEX_COLUMN: subset_df.df_index.max(),
+            }
+        )
+    dict_df = pd.DataFrame(index_dict_list)
+
+    return dict_df
+
+
+@get_execution_time
+def compute_rolling_mwpr(
+    nodes_df: pd.DataFrame,
+    time_window: str,
+    group_column: str,
+    max_workers: int = DEFAULT_MAX_WORKERS_PARALLEL_PROCESSING,
+    chunk_size: int = _CHUNK_SIZE_PARALLEL_PROCESSING,
+) -> pd.DataFrame:
+    """
+    Performs a rolling mwPR computation of the hazen percentiles on each time interval for a
+    specified time window.
+
+    :param nodes_df:
+        Input dataset containing time series records. Must include the column specified by
+        `COVER_DATE_COLUMN` (representing the date of each record), as well as the column
+        specified by `group_column`, which is used to compute both the Mean Weighted Percentile
+        Rank (MWPR) and the `hazen_perc_med` (Hazen median percentile) values.
+    :param time_window:
+        A pandas-compatible rolling window specification (e.g., '365D' for a 365-day window).
+        The window is centered to capture temporal context around each observation.
+    :param group_column:
+        Column name in `nodes_df` that defines the grouping or affiliation for computing
+        mean weighted percentile ranks.
+    :param max_workers:
+         Number of worker processes to use for parallel processing. Defaults to
+        `DEFAULT_MAX_WORKERS_PARALLEL_PROCESSING`.
+    :param chunk_size:
+        Number of rows to include in each chunk when distributing work across workers.
+        Defaults to `_CHUNK_SIZE_PARALLEL_PROCESSING`.
+    :return:
+        A DataFrame containing rolling MWPR values. Each row represents an index position
+        corresponding to the center of a rolling time window, with the computed MWPR and
+        associated cover date.
+    """
+
+    nodes_df = nodes_df.sort_values(by=COVER_DATE_COLUMN).reset_index(drop=True)
+    nodes_df = nodes_df.reset_index(drop=True)
+    nodes_df[_INDEX_COLUMN] = nodes_df.index
+
+    dict_df = _get_dict_df(nodes_df, time_window=time_window)
+
+    mwpr_df = parallelize_dataframe(
+        input_function=_get_rolling_mwpr,
+        df=dict_df,
+        node_df=nodes_df,
+        group_column=group_column,
+        max_workers=max_workers,
+        chunk_size=chunk_size,
+        verbose=True,
+    )
+    mwpr_df[COVER_DATE_COLUMN] = nodes_df.loc[mwpr_df.df_index, COVER_DATE_COLUMN].values
+
+    return mwpr_df

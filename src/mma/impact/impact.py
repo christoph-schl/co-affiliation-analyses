@@ -4,8 +4,12 @@ from typing import Optional
 import geopandas as gpd
 import pandas as pd
 
-from src.mma.constants import ORG_TYPE_FILTER_LIST
+from src.mma.constants import (
+    DEFAULT_MAX_WORKERS_PARALLEL_PROCESSING,
+    ORG_TYPE_FILTER_LIST,
+)
 from src.mma.impact.utils import (
+    compute_rolling_mwpr,
     get_mean_weighted_percentile_ranks,
     merge_impact_measures_to_nodes,
 )
@@ -85,3 +89,35 @@ class Impact:
             df=self._node_df, group_column=group_column, min_samples=min_samples
         )
         return mwpr_df
+
+    def get_rolling_mwpr(
+        self,
+        group_column: str,
+        time_window: str,
+        max_workers: int = DEFAULT_MAX_WORKERS_PARALLEL_PROCESSING,
+    ) -> pd.DataFrame:
+        """
+        Performs a rolling mwPR computation of the hazen percentiles on each time interval for a
+        specified time window.
+
+        :param time_window:
+            A pandas-compatible rolling window specification (e.g., '365D' for a 365-day window).
+            The window is centered to capture temporal context around each observation.
+        :param group_column:
+            Column name in `nodes_df` that defines the grouping or affiliation for computing
+            mean weighted percentile ranks.
+        :param max_workers:
+             Number of worker processes to use for parallel processing. Defaults to
+            `DEFAULT_MAX_WORKERS_PARALLEL_PROCESSING`.
+        :return:
+            A DataFrame containing rolling MWPR values. Each row represents an index position
+            corresponding to the center of a rolling time window, with the computed MWPR and
+            associated cover date.
+        """
+
+        return compute_rolling_mwpr(
+            nodes_df=self._node_df,
+            time_window=time_window,
+            group_column=group_column,
+            max_workers=max_workers,
+        )
