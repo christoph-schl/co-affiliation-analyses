@@ -720,6 +720,24 @@ files = [
 ]
 
 [[package]]
+name = "nx2vos"
+version = "0.2"
+description = "nx2vos: export networkx graphs to VOSviewer format"
+optional = false
+python-versions = ">=3.9"
+groups = ["main"]
+files = [
+    {file = "nx2vos-0.2-py3-none-any.whl", hash = "sha256:57c534008946a6a1df439cdec7008e3ba3e14cbe512e7cc58bd50441e6dd0dd4"},
+    {file = "nx2vos-0.2.tar.gz", hash = "sha256:2a634c33c9b046b8c59a83020dfd84c33d379d26392e2a98ca6f1eaef5a9b503"},
+]
+
+[package.dependencies]
+networkx = ">=3.0"
+
+[package.extras]
+dev = ["pytest (>=7.1)", "pytest-cov", "pytest-unordered", "tox (>=4.4)"]
+
+[[package]]
 name = "packaging"
 version = "25.0"
 description = "Core utilities for Python packages"
@@ -1917,4 +1935,4 @@ zstd = ["zstandard (>=0.18.0)"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.12"
-content-hash = "cddc954fdd9f94534c6da9b373ff3a25675ecd0fa5ec89a497356458259e0622"
+content-hash = "7c9c49e97b834c82502ca59dac4ecaae7c413b20c72b57216763b87f77092a0a"
