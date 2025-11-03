@@ -317,13 +317,13 @@ def create_graph_from_links(
         weight_column=AFFILIATION_EDGE_COUNT_COLUMN,
     )
 
-    edge_gdf = _add_articel_count_to_edges(affiliation_graph=affiliation_graph, edge_gdf=edge_gdf)
+    edge_gdf = _add_article_count_to_edges(affiliation_graph=affiliation_graph, edge_gdf=edge_gdf)
     edge_output = Edge(gdf=edge_gdf, graph=affiliation_graph)
 
     return edge_output
 
 
-def _add_articel_count_to_edges(
+def _add_article_count_to_edges(
     affiliation_graph: Graph, edge_gdf: gpd.GeoDataFrame
 ) -> gpd.GeoDataFrame:
     weight_sums = {
