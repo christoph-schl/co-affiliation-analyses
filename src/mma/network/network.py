@@ -25,6 +25,7 @@ from src.mma.network.utils import (
     get_vos_cluster_numbers,
     retain_affiliation_links_with_min_year_gap,
 )
+from src.mma.plot.constants import AFFILIATION_NAME_ALIASES
 from src.mma.utils.utils import (
     get_affiliation_id_map,
     get_articles_per_author,
@@ -372,10 +373,14 @@ class AffiliationNetworkProcessor:
         ]
 
         self._add_org_type_attributes_to_graph(node_df=nodes)
-
         self._relabel_graph_nodes(node_df=nodes)
 
     def _relabel_graph_nodes(self, node_df: gpd.GeoDataFrame) -> None:
+
+        node_df[PREFERRED_AFFILIATION_NAME_COLUMN] = node_df[
+            PREFERRED_AFFILIATION_NAME_COLUMN
+        ].apply(lambda x: AFFILIATION_NAME_ALIASES.get(x, x))
+
         if self._edge_graph is not None:
             name_map = (
                 node_df[[_NODE_ID_COLUMN, PREFERRED_AFFILIATION_NAME_COLUMN]]
