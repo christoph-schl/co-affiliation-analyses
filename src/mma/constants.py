@@ -73,6 +73,7 @@ ORG_TYPE_COLORS = {
     "museum": Color(156, 34, 227),
     "gov": Color(242, 36, 17),
     "milo": Color(178, 34, 34),
+    "other": Color(128, 128, 128),
 }
 
 EID_COLUMN = "eid"

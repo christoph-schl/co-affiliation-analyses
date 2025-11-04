@@ -21,6 +21,8 @@ from src.mma.constants import (
     FROM_AFFILIATION_INDEX_COLUMN,
     FROM_NODE_COLUMN,
     GEOMETRY_COLUMN,
+    ORG_TYPE_COLORS,
+    ORGANISATION_TYPE_COLUMN,
     PREFERRED_AFFILIATION_NAME_COLUMN,
     TO_AFFILIATION_INDEX_COLUMN,
     TO_NODE_COLUMN,
@@ -37,6 +39,7 @@ _NO_DATA_STRING = "nodata"
 _CHUNK_SIZE_PARALLEL_PROCESSING = 2000
 _YEAR_DIFFERENCE_COLUMN = "year_diff"
 _COVER_YEAR_COLUMN = "cover_year"
+_CLUSTER_COLOR_COLUMN = "cluster"
 
 
 def get_combination_list(input_list: List[int]) -> List[Tuple[int, int]]:
@@ -238,6 +241,7 @@ def _create_graph_from_edges(
         )
     )
     G.add_weighted_edges_from(edge_list)
+
     return G
 
 
@@ -406,3 +410,29 @@ def retain_affiliation_links_with_min_year_gap(
     )
 
     return df
+
+
+def get_vos_cluster_numbers(affiliation_graph: Graph) -> pd.DataFrame:
+    """
+    Creates a DataFrame with RGB colors for each organisation type
+    for an organisation type.
+
+    :param affiliation_graph: The affiliation graph network
+    :return: The VOS color map DataFrame
+    """
+
+    # extract unique organization types
+    node_vals = affiliation_graph.nodes(data=ORGANISATION_TYPE_COLUMN)
+    unique_vals = {val for _, val in node_vals}
+
+    # assign cluster numbers starting at 1
+    cluster_map = dict(zip(unique_vals, range(1, len(unique_vals) + 1), strict=True))
+
+    # map cluster numbers to colors
+    color_map = {number: ORG_TYPE_COLORS[org_type] for org_type, number in cluster_map.items()}
+
+    # build the DataFrame
+    color_df = pd.DataFrame.from_dict(color_map, orient="index")
+    color_df.index.name = _CLUSTER_COLOR_COLUMN
+
+    return color_df

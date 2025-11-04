@@ -3,6 +3,7 @@ from functools import partial
 from typing import Dict, List, Optional, Union
 
 import geopandas as gpd
+import networkx as nx
 import numpy as np
 import pandas as pd
 import structlog
@@ -12,6 +13,7 @@ from src.mma.constants import (
     ARTICLE_AFFILIATION_INDEX_COLUMN,
     LEVEL_2_CLASSIFICATION,
     ORGANISATION_TYPE_COLUMN,
+    PREFERRED_AFFILIATION_NAME_COLUMN,
     UNMAPPED_AFFILIATION_ID_COLUMN,
 )
 from src.mma.dataframe.models.affiliation import AffiliationSchema
@@ -20,11 +22,13 @@ from src.mma.network.utils import (
     Edge,
     create_affiliation_links,
     create_graph_from_links,
+    get_vos_cluster_numbers,
     retain_affiliation_links_with_min_year_gap,
 )
 from src.mma.utils.utils import (
     get_affiliation_id_map,
     get_articles_per_author,
+    get_link_nodes,
     validate_country_code,
 )
 from src.mma.utils.wrappers import get_execution_time, parallelize_dataframe
@@ -34,6 +38,7 @@ _logger = structlog.getLogger()
 _ARTICLE_ID_COLUMN = "article_id"
 _MULTIPLE_AFFILIATION_SEPARATOR = "-"
 _ORG_TYPE_OTHER = "other"
+_NODE_ID_COLUMN = "node"  # corresponds to `affiliation_id`
 
 
 class MissingEdgeGraphError(RuntimeError):
@@ -178,6 +183,7 @@ class AffiliationNetworkProcessor:
     _min_edge_weight: Optional[int] = 0
     _min_year_gap: Optional[int] = 0
     _article_author_df: pd.DataFrame = field(init=False, default=None)
+    _vos_org_type_colors: pd.DataFrame = field(init=False, default=None)
     _affiliation_map: Optional[Dict[np.int64, np.int64]] = field(init=False, default=None)
 
     def __post_init__(self, link_gdf: Optional[gpd.GeoDataFrame]) -> None:
@@ -223,6 +229,19 @@ class AffiliationNetworkProcessor:
     def min_year_gap(self, value: int) -> None:
         _check_int_value(value=value)
         self._min_year_gap = value
+
+    @property
+    def vos_org_type_colors(self) -> pd.DataFrame:
+        if self._vos_org_type_colors is None:
+            if self._edge_graph is None:
+                raise MissingEdgeGraphError(
+                    "Edge graph is not set. "
+                    "Set it when constructing or call `_create_affiliation_graph()` first."
+                )
+            self._vos_org_type_colors = get_vos_cluster_numbers(
+                affiliation_graph=self._edge_graph.graph
+            )
+        return self._vos_org_type_colors
 
     @property
     def edge(self) -> Edge:
@@ -327,6 +346,9 @@ class AffiliationNetworkProcessor:
             self._edge_graph = create_graph_from_links(
                 link_gdf=self._link_gdf, min_weight=self.min_edge_weight
             )
+
+            self._add_org_type_to_graph_and_relabel_nodes()
+
             self.edge = self._edge_graph
 
     def _reclassify_link_org_types(self) -> None:
@@ -342,3 +364,33 @@ class AffiliationNetworkProcessor:
             self.link[org_type_to] = self.link[org_type_to].apply(
                 lambda x: LEVEL_2_CLASSIFICATION[x]
             )
+
+    def _add_org_type_to_graph_and_relabel_nodes(self) -> None:
+
+        nodes = get_link_nodes(link_gdf=self._link_gdf)[
+            [_NODE_ID_COLUMN, ORGANISATION_TYPE_COLUMN, PREFERRED_AFFILIATION_NAME_COLUMN]
+        ]
+
+        self._add_org_type_attributes_to_graph(node_df=nodes)
+
+        self._relabel_graph_nodes(node_df=nodes)
+
+    def _relabel_graph_nodes(self, node_df: gpd.GeoDataFrame) -> None:
+        if self._edge_graph is not None:
+            name_map = (
+                node_df[[_NODE_ID_COLUMN, PREFERRED_AFFILIATION_NAME_COLUMN]]
+                .set_index(_NODE_ID_COLUMN)[PREFERRED_AFFILIATION_NAME_COLUMN]
+                .to_dict()
+            )
+
+            self._edge_graph.graph = nx.relabel_nodes(self._edge_graph.graph, name_map)
+
+    def _add_org_type_attributes_to_graph(self, node_df: gpd.GeoDataFrame) -> None:
+        if self._edge_graph is not None:
+            org_map = (
+                node_df[[_NODE_ID_COLUMN, ORGANISATION_TYPE_COLUMN]]
+                .set_index(_NODE_ID_COLUMN)[ORGANISATION_TYPE_COLUMN]
+                .to_dict()
+            )
+            for node, data in self._edge_graph.graph.nodes(data=True):
+                data[ORGANISATION_TYPE_COLUMN] = org_map[node]
