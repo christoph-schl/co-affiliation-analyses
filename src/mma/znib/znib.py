@@ -72,6 +72,7 @@ class ZINBModel:
             method=self.config.fit_method,
             maxiter=self.config.max_iterations,
             disp=True,
+            cov_type="HC0",
         )
 
         return self._result
