@@ -246,7 +246,7 @@ def enrich_edges_with_org_info(
     """
 
     if org_type_list is not None:
-        edge_gdf = filter_organization_types(edge_gdf=edge_gdf, org_types=org_type_list)
+        edge_gdf = filter_organization_types(df=edge_gdf, org_types=org_type_list)
 
     znib_edges = get_znib_edges(edge_gdf=edge_gdf)
 

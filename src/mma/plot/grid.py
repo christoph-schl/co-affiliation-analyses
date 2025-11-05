@@ -27,7 +27,7 @@ class PlotGrid:
         gs = GridSpec(nrows=2, ncols=2, figure=fig, height_ratios=[1, 0.1])
         gs.update(wspace=0.0, hspace=0.0)
 
-        # Main axes
+        # main axes
         ax1 = fig.add_subplot(gs[0:1])
         ax2 = fig.add_subplot(gs[1:2])
 
@@ -35,7 +35,7 @@ class PlotGrid:
         ax1.set_title(config.title_a, fontsize=13, pad=10, loc="left")
         ax2.set_title(config.title_b, fontsize=13, pad=10, loc="left")
 
-        # sared label (legend area)
+        # shared label (legend area)
         legend_ax = fig.add_subplot(gs[1, :])
         legend_ax.set_xlabel(config.x_label, labelpad=0, fontsize=14)
         legend_ax.xaxis.set_label_position("top")
