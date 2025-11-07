@@ -30,6 +30,22 @@ def test_get_mean_weighted_percentile_ranks(
     assert np.all(mwpr[MWPR_COLUMN] == expected_mwpr)
 
 
+@pytest.mark.parametrize(
+    "min_samples, expected_mwpr",
+    [
+        (0, [89.88, 86.41]),
+        (1, [89.88, 86.41]),
+        (3, []),
+    ],
+)
+def test_get_mean_weighted_percentile_ranks_for_affiliation_links(
+    link_df: pd.DataFrame, impact_df: pd.DataFrame, min_samples: int, expected_mwpr: List[float]
+) -> None:
+    impact = Impact(link_gdf=link_df, impact_df=impact_df)
+    mwpr = impact.get_mwpr(group_column=ORGANISATION_TYPE_COLUMN, min_samples=min_samples).round(2)
+    assert np.all(mwpr[MWPR_COLUMN] == expected_mwpr)
+
+
 def test_get_mean_weighted_percentile_ranks_pipline(
     article_df: pd.DataFrame, affiliation_gdf: gpd.GeoDataFrame, impact_df: pd.DataFrame
 ) -> None:
