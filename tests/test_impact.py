@@ -16,9 +16,9 @@ _COUNTRY_COLUMN = "country"
 @pytest.mark.parametrize(
     "min_samples, expected_mwpr",
     [
-        (0, [85.0, 82.5, 81.0]),
-        (3, [85.0, 81.0]),
-        (4, [81.0]),
+        (0, [85.0, 82.0, 78.18]),
+        (3, [85.0, 78.18]),
+        (4, []),
     ],
 )
 def test_get_mean_weighted_percentile_ranks(
@@ -26,7 +26,7 @@ def test_get_mean_weighted_percentile_ranks(
 ) -> None:
     mwpr = get_mean_weighted_percentile_ranks(
         df=impact_country_test_df, group_column=_COUNTRY_COLUMN, min_samples=min_samples
-    )
+    ).round(2)
     assert np.all(mwpr[MWPR_COLUMN] == expected_mwpr)
 
 

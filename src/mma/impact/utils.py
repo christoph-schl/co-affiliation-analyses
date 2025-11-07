@@ -80,15 +80,18 @@ def merge_impact_measures_to_nodes(
     return node_df
 
 
-def add_weights(df: pd.DataFrame, group_column: str) -> None:
+def add_weights(df: pd.DataFrame, group_column: str) -> pd.DataFrame:
     """
     Adds fractional contributions (`weights`) to the pandas DataFrame.
     :param df: The pandas DataFrame.
     :param group_column: The column name of the `group_column`.
     :return: The pandas DataFrame with `weights` added.
     """
-    df[_GROUP_COUNT_COLUMN] = df.groupby([group_column])[group_column].transform(len)
+    df[_GROUP_COUNT_COLUMN] = df.groupby([EID_COLUMN])[group_column].transform("nunique")
     df[_WEIGHT_COLUMN] = 1 / df[_GROUP_COUNT_COLUMN]
+
+    df = df.drop_duplicates([EID_COLUMN, group_column]).reset_index(drop=True)
+    return df
 
 
 def get_mean_weighted_percentile_ranks(
@@ -131,8 +134,10 @@ def get_mean_weighted_percentile_ranks(
         The DataFrame with mwPRs for each group.
     """
 
+    df = df.copy()
+
     # add weights to DataFrame
-    add_weights(df=df, group_column=group_column)
+    df = add_weights(df=df, group_column=group_column)
 
     df[_SAMPLES_COLUMN] = df.groupby(group_column)[group_column].transform("count")
     df = df[df[_SAMPLES_COLUMN] >= min_samples].reset_index(drop=True)
@@ -150,9 +155,13 @@ def get_mean_weighted_percentile_ranks(
     ).reset_index()
     mean_weighted_pr[_SAMPLES_COLUMN] = mean_weighted_pr[_SAMPLES_COLUMN].astype("int64")
 
-    mean_weighted_pr = mean_weighted_pr.sort_values(by=[MWPR_COLUMN], ascending=False).reset_index(
-        drop=True
-    )
+    if not mean_weighted_pr.empty:
+        mean_weighted_pr = mean_weighted_pr.sort_values(
+            by=[MWPR_COLUMN], ascending=False
+        ).reset_index(drop=True)
+        return mean_weighted_pr
+
+    mean_weighted_pr[MWPR_COLUMN] = pd.Series(dtype=float)
     return mean_weighted_pr
 
 
