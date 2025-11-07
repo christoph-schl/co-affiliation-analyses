@@ -27,6 +27,7 @@ _INDEX_COLUMN = "df_index"
 _MIN_INDEX_COLUMN = "min_index"
 _MAX_INDEX_COLUMN = "max_index"
 _MWPR_INDEX_COLUMN = "mwpr_index"
+_AFFILIATION_INDEX_COLUMN = "affiliation_idx"
 _CHUNK_SIZE_PARALLEL_PROCESSING = 15
 
 
@@ -72,10 +73,11 @@ def merge_impact_measures_to_nodes(
             _logger.warning(f"dropped {len(null_index)} nodes with missing hazen percentiles")
 
     # tag affiliation type
-    first_affiliation_idx = node_df.affiliation_idx == 0
-    last_affiliation_idx = node_df.affiliation_idx == node_df.affiliation_count - 1
-    node_df.loc[first_affiliation_idx, AFFILIATION_CLASS_COLUMN] = AffiliationType.FIRST.value
-    node_df.loc[last_affiliation_idx, AFFILIATION_CLASS_COLUMN] = AffiliationType.LAST.value
+    if _AFFILIATION_INDEX_COLUMN in node_df.columns:
+        first_affiliation_idx = node_df.affiliation_idx == 0
+        last_affiliation_idx = node_df.affiliation_idx == node_df.affiliation_count - 1
+        node_df.loc[first_affiliation_idx, AFFILIATION_CLASS_COLUMN] = AffiliationType.FIRST.value
+        node_df.loc[last_affiliation_idx, AFFILIATION_CLASS_COLUMN] = AffiliationType.LAST.value
 
     return node_df
 

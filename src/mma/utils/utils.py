@@ -231,12 +231,10 @@ def get_link_nodes(link_gdf: gpd.GeoDataFrame) -> pd.DataFrame:
     if GEOMETRY_COLUMN in node_df.columns:
         node_df = node_df.drop(columns=[GEOMETRY_COLUMN])
 
-    node_df = node_df.sort_values(
-        by=[
-            constants.EID_COLUMN,
-            constants.ARTICLE_AUTHOR_ID_COLUMN,
-            constants.ARTICLE_AFFILIATION_INDEX_COLUMN,
-        ]
-    ).reset_index(drop=True)
+    sort_columns = [constants.EID_COLUMN, constants.ARTICLE_AUTHOR_ID_COLUMN]
+    if constants.ARTICLE_AFFILIATION_INDEX_COLUMN in node_df.columns:
+        sort_columns.append(constants.ARTICLE_AFFILIATION_INDEX_COLUMN)
+
+    node_df = node_df.sort_values(by=sort_columns).reset_index(drop=True)
 
     return node_df
