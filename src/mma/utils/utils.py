@@ -181,7 +181,7 @@ def _make_rename_map(
     return {col: _strip_affixes(col, prefixes=prefixes, suffixes=suffixes) for col in columns}
 
 
-def get_link_nodes(link_gdf: gpd.GeoDataFrame) -> pd.DataFrame:
+def get_link_nodes(link_gdf: Union[gpd.GeoDataFrame, pd.DataFrame]) -> pd.DataFrame:
     """
     Convert a 'link' GeoDataFrame that encodes 'from' and 'to' node columns into a stacked node
     DataFrame.

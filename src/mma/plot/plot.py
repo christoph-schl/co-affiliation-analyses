@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Mapping, Optional, OrderedDict
+from typing import Any, Dict, List, Mapping, Optional, OrderedDict, Union
 
 import geopandas as gpd
 import pandas as pd
@@ -32,17 +32,26 @@ from src.mma.plot.utils import (
 from src.mma.utils.utils import filter_organization_types, get_link_nodes
 
 _COLOR_PALETTE: Dict[str, str] = {
-    AffiliationType.ALL.value: "#696969",  # grey
-    AffiliationType.FIRST.value: "#1f77b4",  # blue
-    AffiliationType.LAST.value: "#ff7f0e",  # orange
+    AffiliationType.AA.value: "#696969",  # grey
+    AffiliationType.FA.value: "#1f77b4",  # blue
+    AffiliationType.LA.value: "#ff7f0e",  # orange
 }
 _N_GROUPS_ORG_TYPE = 1000
 _TIME_FREQUENCY_YEARS = 1
+_N_SAMPLES_PER_GROUP_COLUMN = "n_samples_per_group"
+
+
+def _add_org_type_subscript_to_group_column(df: pd.DataFrame, group_column: str) -> None:
+
+    df[group_column] = df.apply(
+        lambda x: f"{x[group_column]} $^{{({x[ORGANISATION_TYPE_COLUMN][0].upper()})}}$", axis=1
+    )
 
 
 def _build_ordered_label_handle(
     ax1: plt.Axes, ax2: plt.Axes, preferred_order: List[str]
 ) -> Mapping[str, Any]:
+
     # get label->handle from each axis
     dict1 = dict(zip(*ax1.get_legend_handles_labels()))
     dict2 = dict(zip(*ax2.get_legend_handles_labels()))
@@ -56,23 +65,25 @@ def _build_ordered_label_handle(
     for name in preferred_order:
         if name in merged:
             ordered[name] = merged[name]
+
     for k, v in merged.items():
         if k not in ordered:
             ordered[k] = v
+
     return ordered
 
 
 def _get_y_order(mwpr: pd.DataFrame, x_column: str, y_column: str) -> List[str]:
     return (
         mwpr.loc[
-            mwpr[AFFILIATION_CLASS_COLUMN] == AffiliationType.ALL.value, [y_column, x_column]
+            mwpr[AFFILIATION_CLASS_COLUMN] == AffiliationType.AA.value, [y_column, x_column]
         ].sort_values(by=x_column, ascending=False)
     )[y_column].tolist()
 
 
 @dataclass
 class ImpactPlot(Impact):
-    filtered_link_gdf: gpd.GeoDataFrame
+    filtered_link_gdf: Union[gpd.GeoDataFrame, pd.DataFrame]
     n_mwpr_units: int = 10
     _filtered_node_df: Optional[pd.DataFrame] = field(default=None, init=False)
 
@@ -97,6 +108,10 @@ class ImpactPlot(Impact):
             df[PREFERRED_AFFILIATION_NAME_COLUMN] = df[PREFERRED_AFFILIATION_NAME_COLUMN].apply(
                 lambda x: AFFILIATION_NAME_ALIASES.get(x, x)
             )
+
+    @property
+    def filtered_node_df(self) -> Optional[pd.DataFrame]:
+        return self._filtered_node_df
 
     def get_bar_plot(
         self,
@@ -189,11 +204,12 @@ class ImpactPlot(Impact):
                     org_type_order=org_type_order,
                 )
 
-            # remove individual x-labels since the grid controls overall labeling
             ax.set_xlabel(None)
-        # Labeling and legend belong to the grid-level axes
-        grid.ax1.set_ylabel("Hazen percentile [%]", labelpad=0, fontsize=14)
+            ax.tick_params(axis="x", labelsize=PLOT_CONFIGS[config_key].figure.tickx_label_size)
+            ax.tick_params(axis="y", labelsize=PLOT_CONFIGS[config_key].figure.ticky_label_size)
+
         grid.ax2.set_ylabel(None)
+
         legend_config = PLOT_CONFIGS[config_key].legend
         grid.add_legends_from_plot_config(config=legend_config)
         return grid
@@ -211,6 +227,9 @@ class ImpactPlot(Impact):
             (self._mwpr_df[group_column].to_concatenated(), grid.ax1),
             (self._mwpr_filtered_df[group_column].to_concatenated(), grid.ax2),
         ]:
+            if group_column == PREFERRED_AFFILIATION_NAME_COLUMN:
+                _add_org_type_subscript_to_group_column(df=mwpr, group_column=group_column)
+
             y_order = _get_y_order(
                 mwpr=mwpr,
                 x_column=MWPR_COLUMN,
@@ -224,7 +243,23 @@ class ImpactPlot(Impact):
                 ax=ax,
                 y_column=PREFERRED_AFFILIATION_NAME_COLUMN,
                 y_order=y_order,
+                fontsize=10,
             )
+            ax.tick_params(axis="x", labelsize=PLOT_CONFIGS[config_key].figure.tickx_label_size)
+            ax.tick_params(axis="y", labelsize=PLOT_CONFIGS[config_key].figure.ticky_label_size)
+
+        grid.legend_ax.text(
+            0.6,
+            2.8,  # position in axes coordinates (bottom-left corner)
+            "(R): Research Institutes    (U): Universities",
+            fontsize=14,
+            verticalalignment="bottom",
+            bbox=dict(
+                facecolor="white",
+                edgecolor="lightgrey",
+                boxstyle="round,pad=0.5,rounding_size=0.2",
+            ),
+        )
 
         legend_config = PLOT_CONFIGS[config_key].legend
         grid.add_legends_from_plot_config(config=legend_config)
@@ -237,6 +272,7 @@ class ImpactPlot(Impact):
         group_column: str = ORGANISATION_TYPE_COLUMN,
         n_groups: int = _N_GROUPS_ORG_TYPE,
     ) -> None:
+
         self._mwpr_df[group_column] = compute_mwpr_for_affiliation_class(
             node_df=self._node_df,
             n_groups=n_groups,
@@ -280,9 +316,16 @@ class ImpactPlot(Impact):
                 drop=True
             )
 
+            if group_column == PREFERRED_AFFILIATION_NAME_COLUMN:
+                _add_org_type_subscript_to_group_column(df=time_nodes, group_column=group_column)
+
             plot_time_series(df=time_nodes, axes=ax, group_column=group_column)
-            ax.set_ylim(20, 100)
+            ax.set_ylim(45, 100)
             ax.legend_.remove()
+            ax.tick_params(axis="x", labelsize=PLOT_CONFIGS[config_key].figure.tickx_label_size)
+            ax.tick_params(axis="y", labelsize=PLOT_CONFIGS[config_key].figure.ticky_label_size)
+
+        grid.ax2.set_ylabel(None)
 
         # build handles for legend
         preferred_order = list(time_nodes[group_column].unique())

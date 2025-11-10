@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Optional, Union
 
 import geopandas as gpd
 import pandas as pd
@@ -55,7 +55,7 @@ class Impact:
       • y     : the total number of nodes in the group
     """
 
-    link_gdf: gpd.GeoDataFrame
+    link_gdf: Union[gpd.GeoDataFrame, pd.DataFrame]
     impact_df: pd.DataFrame
     _node_df: Optional[pd.DataFrame] = field(default=None, init=False)
 
@@ -68,6 +68,10 @@ class Impact:
         self._node_df = merge_impact_measures_to_nodes(
             node_df=self._node_df, impact_df=self.impact_df
         )
+
+    @property
+    def node_df(self) -> Optional[pd.DataFrame]:
+        return self._node_df
 
     def get_mwpr(self, group_column: str, min_samples: int = 0) -> pd.DataFrame:
         """

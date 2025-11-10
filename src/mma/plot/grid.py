@@ -19,12 +19,13 @@ class PlotGrid:
     fig: plt.Figure
     ax1: plt.Axes
     ax2: plt.Axes
+    legend_ax: plt.Axes
 
     @classmethod
     def from_config(cls, config: FigureConfig) -> "PlotGrid":
         """Builds a PlotGrid from a FigureConfig."""
         fig = plt.figure(figsize=config.figure_size, layout="constrained")
-        gs = GridSpec(nrows=2, ncols=2, figure=fig, height_ratios=[1, 0.1])
+        gs = GridSpec(nrows=2, ncols=2, figure=fig, height_ratios=config.height_ratio)
         gs.update(wspace=0.0, hspace=0.0)
 
         # main axes
@@ -32,12 +33,12 @@ class PlotGrid:
         ax2 = fig.add_subplot(gs[1:2])
 
         # titels
-        ax1.set_title(config.title_a, fontsize=13, pad=10, loc="left")
-        ax2.set_title(config.title_b, fontsize=13, pad=10, loc="left")
+        ax1.set_title(config.title_a, fontsize=16, pad=10, loc="left")
+        ax2.set_title(config.title_b, fontsize=16, pad=10, loc="left")
 
         # shared label (legend area)
         legend_ax = fig.add_subplot(gs[1, :])
-        legend_ax.set_xlabel(config.x_label, labelpad=0, fontsize=14)
+        legend_ax.set_xlabel(config.x_label, labelpad=0, fontsize=16)
         legend_ax.xaxis.set_label_position("top")
         legend_ax.set_xticks([])
         legend_ax.set_yticks([])
@@ -46,7 +47,7 @@ class PlotGrid:
             spine.set_visible(False)
 
         # Y-labels
-        ax1.set_ylabel(config.y_label, fontsize=12)
+        ax1.set_ylabel(config.y_label, labelpad=0, fontsize=16)
         if config.deactivate_ax2_ylabels:
             ax2.set_ylabel(None)
             ax2.set_yticklabels([])
@@ -58,7 +59,7 @@ class PlotGrid:
             50, color="k", linewidth=1.0, linestyle="--"
         )
 
-        return cls(fig=fig, ax1=ax1, ax2=ax2)
+        return cls(fig=fig, ax1=ax1, ax2=ax2, legend_ax=legend_ax)
 
     def add_legends_from_plot_config(
         self,

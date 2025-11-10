@@ -5,7 +5,7 @@ AFFILIATION_NAME_ALIASES = {
     "BioTechMed-Graz": "BioTechMed Graz",
     "Universität Innsbruck": "Uni Innsbruck",
     "Center for Biomarker Research in Medicine (CBmed) Graz": "CBmed Graz",
-    "Research Center Pharmaceutical Engineering GmbH": "RCPE GmbH",
+    "Research Center Pharmaceutical Engineering GmbH": "RCPE",
     "Veterinärmedizinische Universität Wien": "Vetmeduni",
     "Ludwig Boltzmann Gesellschaft Wien": "LBG Wien",
     "Universität für Bodenkultur Wien": "BOKU Wien",

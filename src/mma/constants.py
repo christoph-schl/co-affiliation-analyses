@@ -37,7 +37,7 @@ TRAVEL_TIME_SEC_COLUMN = "duration_s"
 ARTICLE_COUNT_COLUMN = "article_count"
 LN_PROD_ARTICLE_COUNT_COLUMN = "ln_prod_article_count"
 LN_DURATION_COLUMN = "ln_duration"
-ORG_TYPE_FILTER_LIST = ["univ", "resi", "hosp", "comp", "coll", "ngo", "gov"]
+ORG_TYPE_FILTER_LIST = ["univ", "resi", "hosp", "comp", "coll", "npo", "gov"]
 DEFAULT_REGULARIZATION_STRENGTH = 3.0
 DEFAULT_ZERO_INFLATION_MODEL = "logit"
 DEFAULT_DISPERSION_POWER = 2
@@ -69,7 +69,7 @@ ORG_TYPE_COLORS = {
     "hosp": Color(51, 78, 255),
     "comp": Color(70, 236, 250),
     "coll": Color(255, 127, 0),
-    "ngo": Color(34, 153, 84),
+    "npo": Color(34, 153, 84),
     "museum": Color(156, 34, 227),
     "gov": Color(242, 36, 17),
     "milo": Color(178, 34, 34),
@@ -83,7 +83,7 @@ LEVEL_2_CLASSIFICATION = {
     "hosp": "hosp",
     "comp": "comp",
     "resi": "resi",
-    "ngo": "ngo",
+    "npo": "npo",
     "univ|resi": "univ",
     "gov|resi": "resi",
     "univ": "univ",
@@ -98,8 +98,10 @@ LEVEL_2_CLASSIFICATION = {
     "gov|gov": "univ",
     "museum": "museum",
     "coll|resi": "coll",
-    "ngo|resi": "resi",
-    "meds|ngo": "ngo",
+    "npo|resi": "resi",
+    "meds|npo": "npo",
     "milo": "milo",
     "other": "other",
 }
+
+SAMPLES_COLUMN = "samples"

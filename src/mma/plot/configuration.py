@@ -1,6 +1,9 @@
 # configuration.py
-from dataclasses import dataclass
-from typing import Dict, Optional, Tuple
+from dataclasses import dataclass, field
+from typing import Dict, List, Optional, Tuple
+
+_DEFAULT_TITLE_A = "(a) affiliation_links_all"
+_DEFAULT_TITLE_B = "(b) affiliation_links_filtered"
 
 
 # ---------- Legend dataclasses (unchanged, slightly renamed fields) ----------
@@ -27,12 +30,15 @@ DEFAULT_LEGEND = LegendConfig()
 @dataclass(frozen=True)
 class FigureConfig:
     create_hline: bool = True
-    title_a: Optional[str] = "(a) All affiliation links"
-    title_b: Optional[str] = "(b) Filtered links (≥2 links by authors, ≥2 yrs apart)"
-    y_label: str = "Hazen percentile [%]"
+    title_a: Optional[str] = _DEFAULT_TITLE_A
+    title_b: Optional[str] = _DEFAULT_TITLE_B
+    y_label: str = "wPR [%]"
     x_label: str = "Organisation"
     deactivate_ax2_ylabels: bool = True
     figure_size: Tuple[int, int] = (12, 5)
+    height_ratio: List[float] = field(default_factory=lambda: [1, 0.1])
+    tickx_label_size: int = 14
+    ticky_label_size: int = 14
 
 
 # Default figure config
@@ -52,44 +58,50 @@ PLOT_CONFIGS: Dict[str, PlotConfig] = {
         legend=PlotLegendConfig(
             axes1=LegendConfig(
                 placement="lower center",
-                bbox_to_anchor=(0.22, 0.00),
-                n_legend_columns=4,
-                fontsize=13,
+                bbox_to_anchor=(0.525, -0.009),
+                n_legend_columns=9,
+                fontsize=14,
             ),
             axes2=None,
         ),
         figure=FigureConfig(
             # override any figure-level defaults if you want
             create_hline=True,
-            title_a="(a) All affiliation links",
-            title_b="(b) Filtered links (≥2 links by authors, ≥2 yrs apart)",
+            title_a=_DEFAULT_TITLE_A,
+            title_b=_DEFAULT_TITLE_B,
             y_label="mwPR [%]",
             x_label="Publication year",
-            deactivate_ax2_ylabels=False,
+            deactivate_ax2_ylabels=True,
             figure_size=(12, 6),
+            height_ratio=[1, 0.09],
         ),
     ),
     "timeseries_by_preferred_name": PlotConfig(
         legend=PlotLegendConfig(
             axes1=LegendConfig(
                 placement="lower center",
-                bbox_to_anchor=(0.25, 0.18),
-                n_legend_columns=2,
+                bbox_to_anchor=(0.525, -0.01),
+                n_legend_columns=5,
                 fontsize=13,
             ),
-            axes2=LegendConfig(
-                placement="lower center",
-                bbox_to_anchor=(0.746, 0.18),
-                n_legend_columns=2,
-                fontsize=13,
-            ),
+            axes2=None,
+        ),
+        figure=FigureConfig(
+            create_hline=True,
+            title_a=_DEFAULT_TITLE_A,
+            title_b=_DEFAULT_TITLE_B,
+            y_label="mwPR [%]",
+            x_label="Publication year",
+            deactivate_ax2_ylabels=True,
+            figure_size=(12, 6),
+            height_ratio=[1, 0.17],
         ),
     ),
     "violine_by_org_type": PlotConfig(
         legend=PlotLegendConfig(
             axes1=LegendConfig(
                 placement="lower center",
-                bbox_to_anchor=(0.5, -0.01),
+                bbox_to_anchor=(0.5, -0.015),
                 n_legend_columns=4,
                 fontsize=13,
                 add_all_and_mwpr=True,
@@ -98,33 +110,36 @@ PLOT_CONFIGS: Dict[str, PlotConfig] = {
         ),
         figure=FigureConfig(
             create_hline=True,
-            title_a="(a) All affiliation links",
-            title_b="(b) Filtered links (≥2 links by authors, ≥2 yrs apart)",
-            y_label="Hazen percentile [%]",
+            title_a=_DEFAULT_TITLE_A,
+            title_b=_DEFAULT_TITLE_B,
+            y_label="wPR [%]",
             x_label="Organisation",
             deactivate_ax2_ylabels=True,
             figure_size=(12, 5),
+            tickx_label_size=16,
+            ticky_label_size=16,
         ),
     ),
     "barplot_by_preferred_name": PlotConfig(
         legend=PlotLegendConfig(
             axes1=LegendConfig(
                 placement="lower center",
-                bbox_to_anchor=(0.25, 0.05),
+                bbox_to_anchor=(0.3, 0.00),
                 n_legend_columns=3,
-                fontsize=13,
+                fontsize=14,
             ),
             axes2=None,
         ),
         figure=FigureConfig(
             # override any figure-level defaults if you want
             create_hline=False,
-            title_a="(a) All affiliation links",
-            title_b="(b) Filtered links (≥2 links by authors, ≥2 yrs apart)",
+            title_a=_DEFAULT_TITLE_A,
+            title_b=_DEFAULT_TITLE_B,
             y_label="",
             x_label="mwPR [%]",
             deactivate_ax2_ylabels=False,
-            figure_size=(12, 6),
+            figure_size=(12, 7),
+            height_ratio=[1, 0.01],
         ),
     ),
 }

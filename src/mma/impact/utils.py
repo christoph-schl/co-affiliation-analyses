@@ -15,12 +15,13 @@ from src.mma.constants import (
     HAZEN_PERCENTILE_COLUMN,
     ITEM_ID_COLUMN,
     MWPR_COLUMN,
+    ORGANISATION_TYPE_COLUMN,
+    SAMPLES_COLUMN,
 )
 from src.mma.utils.wrappers import get_execution_time, parallelize_dataframe
 
 _logger = structlog.getLogger(__name__)
 
-_SAMPLES_COLUMN = "samples"
 _WEIGHT_COLUMN = "weight"
 _GROUP_COUNT_COLUMN = "n_groups"
 _INDEX_COLUMN = "df_index"
@@ -32,9 +33,9 @@ _CHUNK_SIZE_PARALLEL_PROCESSING = 15
 
 
 class AffiliationType(enum.Enum):
-    ALL = "All"
-    FIRST = "First"
-    LAST = "Last"
+    AA = "AA"
+    FA = "FA"
+    LA = "LA"
 
 
 def merge_impact_measures_to_nodes(
@@ -76,8 +77,8 @@ def merge_impact_measures_to_nodes(
     if _AFFILIATION_INDEX_COLUMN in node_df.columns:
         first_affiliation_idx = node_df.affiliation_idx == 0
         last_affiliation_idx = node_df.affiliation_idx == node_df.affiliation_count - 1
-        node_df.loc[first_affiliation_idx, AFFILIATION_CLASS_COLUMN] = AffiliationType.FIRST.value
-        node_df.loc[last_affiliation_idx, AFFILIATION_CLASS_COLUMN] = AffiliationType.LAST.value
+        node_df.loc[first_affiliation_idx, AFFILIATION_CLASS_COLUMN] = AffiliationType.FA.value
+        node_df.loc[last_affiliation_idx, AFFILIATION_CLASS_COLUMN] = AffiliationType.LA.value
 
     return node_df
 
@@ -141,8 +142,8 @@ def get_mean_weighted_percentile_ranks(
     # add weights to DataFrame
     df = add_weights(df=df, group_column=group_column)
 
-    df[_SAMPLES_COLUMN] = df.groupby(group_column)[group_column].transform("count")
-    df = df[df[_SAMPLES_COLUMN] >= min_samples].reset_index(drop=True)
+    df[SAMPLES_COLUMN] = df.groupby(group_column)[group_column].transform("count")
+    df = df[df[SAMPLES_COLUMN] >= min_samples].reset_index(drop=True)
 
     grouped = df.groupby(group_column, group_keys=False)
     mean_weighted_pr = grouped.apply(
@@ -150,12 +151,20 @@ def get_mean_weighted_percentile_ranks(
             {
                 MWPR_COLUMN: (g[HAZEN_PERCENTILE_COLUMN] * g[_WEIGHT_COLUMN]).sum()
                 / g[_WEIGHT_COLUMN].sum(),
-                _SAMPLES_COLUMN: g[_SAMPLES_COLUMN].iloc[0],
+                SAMPLES_COLUMN: g[SAMPLES_COLUMN].iloc[0],
             }
         ),
         include_groups=False,
     ).reset_index()
-    mean_weighted_pr[_SAMPLES_COLUMN] = mean_weighted_pr[_SAMPLES_COLUMN].astype("int64")
+    mean_weighted_pr[SAMPLES_COLUMN] = mean_weighted_pr[SAMPLES_COLUMN].astype("int64")
+
+    if group_column != ORGANISATION_TYPE_COLUMN:
+        mean_weighted_pr = mean_weighted_pr.merge(
+            right=df[[group_column, ORGANISATION_TYPE_COLUMN]].drop_duplicates(subset=group_column),
+            left_on=group_column,
+            right_on=group_column,
+            how="left",
+        )
 
     if not mean_weighted_pr.empty:
         mean_weighted_pr = mean_weighted_pr.sort_values(
@@ -237,7 +246,7 @@ def compute_mwpr_for_affiliation_class(
     mwpr_all = get_mean_weighted_percentile_ranks(
         df=node_df, group_column=group_column, min_samples=min_samples
     ).head(n=n_groups)
-    mwpr_all[AFFILIATION_CLASS_COLUMN] = AffiliationType.ALL.value
+    mwpr_all[AFFILIATION_CLASS_COLUMN] = AffiliationType.AA.value
 
     # Keep list of affiliation names for filtering
     affiliation_names = mwpr_all[group_column].tolist()
@@ -245,19 +254,19 @@ def compute_mwpr_for_affiliation_class(
     # --- Compute mwPR for first and last authors ---
     mwpr_first = _compute_mwpr_for_class(
         node_df=node_df,
-        aff_class=AffiliationType.FIRST.value,
+        aff_class=AffiliationType.FA.value,
         filter_names=affiliation_names,
         group_column=group_column,
     )
-    mwpr_first[AFFILIATION_CLASS_COLUMN] = AffiliationType.FIRST.value
+    mwpr_first[AFFILIATION_CLASS_COLUMN] = AffiliationType.FA.value
 
     mwpr_last = _compute_mwpr_for_class(
         node_df=node_df,
-        aff_class=AffiliationType.LAST.value,
+        aff_class=AffiliationType.LA.value,
         filter_names=affiliation_names,
         group_column=group_column,
     )
-    mwpr_last[AFFILIATION_CLASS_COLUMN] = AffiliationType.LAST.value
+    mwpr_last[AFFILIATION_CLASS_COLUMN] = AffiliationType.LA.value
 
     mwpr = AffiliationMwpr(all=mwpr_all, first=mwpr_first, last=mwpr_last)
 

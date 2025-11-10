@@ -25,9 +25,9 @@ _N_ROWS = 2
 _N_COLS = 2
 
 _COLOR_PALETTE: Dict[str, str] = {
-    AffiliationType.ALL.value: "#696969",  # grey
-    AffiliationType.FIRST.value: "#1f77b4",  # blue
-    AffiliationType.LAST.value: "#ff7f0e",  # orange
+    AffiliationType.AA.value: "#696969",  # grey
+    AffiliationType.FA.value: "#1f77b4",  # blue
+    AffiliationType.LA.value: "#ff7f0e",  # orange
 }
 
 # Constants for marker styling
@@ -314,7 +314,7 @@ def add_legend(
             # build new lists as [first, All, last, mwPR] while avoiding duplication if lists
             # are small. if there's only one handle, use it for both first and last positions.
             new_handles = [first_handle, all_patch]
-            new_labels = [final_labels[0], "All"]
+            new_labels = [final_labels[0], f"{AffiliationType.AA.value}"]
 
             if len(final_handles) > 1:
                 new_handles.append(last_handle)
@@ -326,14 +326,17 @@ def add_legend(
                 new_labels.append(final_labels[0])
 
             new_handles.append(mwpr_marker)
-            new_labels.append("mwPR [%] (First, All, Last)")
+            new_labels.append(
+                f"mwPR [%] ({AffiliationType.FA.value}, "
+                f"{AffiliationType.AA.value}, {AffiliationType.LA.value})"
+            )
 
             final_handles = new_handles
             final_labels = new_labels
         else:
             # no existing handles — just show All and mwPR
             final_handles = [all_patch, mwpr_marker]
-            final_labels = ["All", "mwPR [%]"]
+            final_labels = [f"{AffiliationType.AA.value}", "mwPR [%]"]
 
     # finally, create and return the figure legend
     fig.legend(
@@ -365,6 +368,7 @@ def plot_bar(ax: plt.Axes, data: pd.DataFrame, y_order: List[str]) -> None:
     ax.set_ylabel(None)
     ax.set_xlabel(None)
     plt.setp(ax.get_yticklabels(), rotation=45, ha="right")
+
     # remove per-axis legend; we'll add a single figure legend later
     if getattr(ax, "legend_", None):
         ax.legend_.remove()
