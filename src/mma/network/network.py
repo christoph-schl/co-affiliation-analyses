@@ -332,7 +332,6 @@ class AffiliationNetworkProcessor:
         self._link_gdf = retain_affiliation_links_with_min_year_gap(
             link_gdf=self._link_gdf, min_year_gap=self.min_year_gap
         )
-        self._reclassify_link_org_types()
         self.link = self._link_gdf
 
     def _create_affiliation_graph(self, min_edge_weight: Optional[int] = None) -> None:

@@ -8,7 +8,6 @@ from matplotlib import pyplot as plt
 from src.mma.constants import (
     AFFILIATION_CLASS_COLUMN,
     MWPR_COLUMN,
-    ORG_TYPE_FILTER_LIST,
     ORGANISATION_TYPE_COLUMN,
     PREFERRED_AFFILIATION_NAME_COLUMN,
 )
@@ -96,7 +95,7 @@ def _get_y_order(mwpr: pd.DataFrame, x_column: str, y_column: str) -> List[str]:
     )[y_column].tolist()
 
 
-@dataclass
+@dataclass(kw_only=True)
 class ImpactPlot(Impact):
     filtered_link_gdf: Union[gpd.GeoDataFrame, pd.DataFrame]
     n_mwpr_units: int = 10
@@ -109,9 +108,10 @@ class ImpactPlot(Impact):
         super().__post_init__()
 
         # filter organisation types
-        self.filtered_link_gdf = filter_organization_types(
-            df=self.filtered_link_gdf, org_types=ORG_TYPE_FILTER_LIST
-        )
+        if self.allowed_org_types is not None:
+            self.filtered_link_gdf = filter_organization_types(
+                df=self.filtered_link_gdf, org_types=self.allowed_org_types
+            )
 
         self._filtered_node_df = get_link_nodes(link_gdf=self.filtered_link_gdf)
         self._filtered_node_df = merge_impact_measures_to_nodes(

@@ -24,9 +24,9 @@ from src.mma.znib.znib import ZNIB
 @pytest.mark.parametrize(
     "org_type_filter, expected_length_edge_df",
     [
-        (["univ", "resi"], 3),
-        (["univ"], 1),
-        (["resi"], 2),
+        (["uni", "res"], 3),
+        (["uni"], 1),
+        (["res"], 2),
         (["comp"], 0),
     ],
 )
@@ -38,7 +38,7 @@ def test_filter_organization_types(
     edges = edge_graph.gdf
 
     # filter edges
-    filtered_edges = filter_organization_types(edge_gdf=edges, org_types=org_type_filter)
+    filtered_edges = filter_organization_types(df=edges, org_types=org_type_filter)
     from_org_types = filtered_edges[ORGANISATION_TYPE_COLUMN].unique()
     to_org_types = filtered_edges[f"{ORGANISATION_TYPE_COLUMN}_to"].unique()
 
@@ -90,32 +90,32 @@ def test_enrich_edges_with_org_info(link_df: pd.DataFrame, route_df: pd.DataFram
     ]
     assert np.all(same_org_df.same_org)
 
-    # univ_univ
+    # uni_uni
     same_org_df = enriched_edges[
-        (enriched_edges[ORGANISATION_TYPE_COLUMN] == "univ")
-        & (enriched_edges[f"{ORGANISATION_TYPE_COLUMN}_to"] == "univ")
+        (enriched_edges[ORGANISATION_TYPE_COLUMN] == "uni")
+        & (enriched_edges[f"{ORGANISATION_TYPE_COLUMN}_to"] == "uni")
     ]
-    assert np.all(same_org_df.univ_univ)
+    assert np.all(same_org_df.uni_uni)
 
-    # resi_resi
+    # res_res
     same_org_df = enriched_edges[
-        (enriched_edges[ORGANISATION_TYPE_COLUMN] == "resi")
-        & (enriched_edges[f"{ORGANISATION_TYPE_COLUMN}_to"] == "resi")
+        (enriched_edges[ORGANISATION_TYPE_COLUMN] == "res")
+        & (enriched_edges[f"{ORGANISATION_TYPE_COLUMN}_to"] == "res")
     ]
-    assert np.all(same_org_df.resi_resi)
+    assert np.all(same_org_df.res_res)
 
-    # resi_univ
+    # res_uni
     same_org_df = enriched_edges[
         (
-            (enriched_edges[ORGANISATION_TYPE_COLUMN] == "resi")
-            & (enriched_edges[f"{ORGANISATION_TYPE_COLUMN}_to"] == "univ")
+            (enriched_edges[ORGANISATION_TYPE_COLUMN] == "res")
+            & (enriched_edges[f"{ORGANISATION_TYPE_COLUMN}_to"] == "uni")
         )
         | (
-            (enriched_edges[ORGANISATION_TYPE_COLUMN] == "univ")
-            & (enriched_edges[f"{ORGANISATION_TYPE_COLUMN}_to"] == "resi")
+            (enriched_edges[ORGANISATION_TYPE_COLUMN] == "uni")
+            & (enriched_edges[f"{ORGANISATION_TYPE_COLUMN}_to"] == "res")
         )
     ]
-    assert np.all(same_org_df.resi_univ)
+    assert np.all(same_org_df.res_uni)
 
 
 def test_znib_pipline(
@@ -135,8 +135,8 @@ def test_znib_pipline(
         predictor_vars=[
             "ln_prod_article_count",
             "ln_duration",
-            "univ_univ",
-            "resi_resi",
+            "uni_uni",
+            "res_res",
         ],
         inflation_var="ln_prod_article_count",
         max_iterations=1000,

@@ -1,12 +1,11 @@
 from dataclasses import dataclass, field
-from typing import Optional, Union
+from typing import List, Optional, Union
 
 import geopandas as gpd
 import pandas as pd
 
 from src.mma.constants import (
     DEFAULT_MAX_WORKERS_PARALLEL_PROCESSING,
-    ORG_TYPE_FILTER_LIST,
 )
 from src.mma.impact.utils import (
     compute_rolling_mwpr,
@@ -57,12 +56,16 @@ class Impact:
 
     link_gdf: Union[gpd.GeoDataFrame, pd.DataFrame]
     impact_df: pd.DataFrame
+    allowed_org_types: Optional[List[str]] = None
     _node_df: Optional[pd.DataFrame] = field(default=None, init=False)
 
     def __post_init__(self) -> None:
 
         # filter organisation types
-        self.link_gdf = filter_organization_types(df=self.link_gdf, org_types=ORG_TYPE_FILTER_LIST)
+        if self.allowed_org_types is not None:
+            self.link_gdf = filter_organization_types(
+                df=self.link_gdf, org_types=self.allowed_org_types
+            )
 
         self._node_df = get_link_nodes(link_gdf=self.link_gdf)
         self._node_df = merge_impact_measures_to_nodes(

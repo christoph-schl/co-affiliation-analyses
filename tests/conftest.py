@@ -32,7 +32,7 @@ def get_affiliation_test_df() -> gpd.GeoDataFrame:
                 "Aff8",
                 "Aff9",
             ],
-            "org_type": ["univ", "univ", "resi", "resi", "gov", "univ", "resi", "resi", "gov"],
+            "org_type": ["uni", "uni", "res", "res", "gov", "uni", "res", "res", "gov"],
             "geometry": [
                 Point(16.3738, 48.2082),  # Wien
                 Point(16.3738, 48.2082),  # Wien
@@ -79,8 +79,8 @@ def get_link_test_df() -> pd.DataFrame:
             "preferred_name_to": ["Univ_9", "Univ_9", "Resi_11", "Resi_1"],
             "cover_date": ["2013-05-01", "2015-05-01", "2020-05-01", "2023-05-01"],
             "author_ids": ["Author1", "Author1", "Author2", "Author3"],
-            "org_type": ["univ", "univ", "resi", "resi"],
-            "org_type_to": ["univ", "univ", "resi", "resi"],
+            "org_type": ["uni", "uni", "res", "res"],
+            "org_type_to": ["uni", "uni", "res", "res"],
         }
     )
 
