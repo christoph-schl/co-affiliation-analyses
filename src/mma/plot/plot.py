@@ -73,6 +73,21 @@ def _build_ordered_label_handle(
     return ordered
 
 
+def _add_additional_org_type_legend(ax: plt.Axes) -> None:
+    ax.text(
+        0.6,
+        2.8,
+        "(R): Research Institutes    (U): Universities",
+        fontsize=14,
+        va="bottom",
+        bbox={
+            "facecolor": "white",
+            "edgecolor": "lightgrey",
+            "boxstyle": "round,pad=0.5,rounding_size=0.2",
+        },
+    )
+
+
 def _get_y_order(mwpr: pd.DataFrame, x_column: str, y_column: str) -> List[str]:
     return (
         mwpr.loc[
@@ -203,12 +218,11 @@ class ImpactPlot(Impact):
                     mwpr=mwpr_df,
                     org_type_order=org_type_order,
                 )
-
             ax.set_xlabel(None)
-            ax.tick_params(axis="x", labelsize=PLOT_CONFIGS[config_key].figure.tickx_label_size)
-            ax.tick_params(axis="y", labelsize=PLOT_CONFIGS[config_key].figure.ticky_label_size)
 
-        grid.ax2.set_ylabel(None)
+        # explicitly required because seaborn inside plot_violine overrides y-labels
+        if PLOT_CONFIGS[config_key].figure.deactivate_ax2_ylabels:
+            grid.ax2.set_ylabel(None)
 
         legend_config = PLOT_CONFIGS[config_key].legend
         grid.add_legends_from_plot_config(config=legend_config)
@@ -245,21 +259,8 @@ class ImpactPlot(Impact):
                 y_order=y_order,
                 fontsize=10,
             )
-            ax.tick_params(axis="x", labelsize=PLOT_CONFIGS[config_key].figure.tickx_label_size)
-            ax.tick_params(axis="y", labelsize=PLOT_CONFIGS[config_key].figure.ticky_label_size)
 
-        grid.legend_ax.text(
-            0.6,
-            2.8,  # position in axes coordinates (bottom-left corner)
-            "(R): Research Institutes    (U): Universities",
-            fontsize=14,
-            verticalalignment="bottom",
-            bbox=dict(
-                facecolor="white",
-                edgecolor="lightgrey",
-                boxstyle="round,pad=0.5,rounding_size=0.2",
-            ),
-        )
+        _add_additional_org_type_legend(ax=grid.legend_ax)
 
         legend_config = PLOT_CONFIGS[config_key].legend
         grid.add_legends_from_plot_config(config=legend_config)
@@ -320,12 +321,6 @@ class ImpactPlot(Impact):
                 _add_org_type_subscript_to_group_column(df=time_nodes, group_column=group_column)
 
             plot_time_series(df=time_nodes, axes=ax, group_column=group_column)
-            ax.set_ylim(45, 100)
-            ax.legend_.remove()
-            ax.tick_params(axis="x", labelsize=PLOT_CONFIGS[config_key].figure.tickx_label_size)
-            ax.tick_params(axis="y", labelsize=PLOT_CONFIGS[config_key].figure.ticky_label_size)
-
-        grid.ax2.set_ylabel(None)
 
         # build handles for legend
         preferred_order = list(time_nodes[group_column].unique())

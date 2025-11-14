@@ -158,7 +158,7 @@ def get_mean_weighted_percentile_ranks(
     ).reset_index()
     mean_weighted_pr[SAMPLES_COLUMN] = mean_weighted_pr[SAMPLES_COLUMN].astype("int64")
 
-    if group_column != ORGANISATION_TYPE_COLUMN:
+    if (group_column != ORGANISATION_TYPE_COLUMN) and (ORGANISATION_TYPE_COLUMN in df.columns):
         mean_weighted_pr = mean_weighted_pr.merge(
             right=df[[group_column, ORGANISATION_TYPE_COLUMN]].drop_duplicates(subset=group_column),
             left_on=group_column,

@@ -37,7 +37,7 @@ TRAVEL_TIME_SEC_COLUMN = "duration_s"
 ARTICLE_COUNT_COLUMN = "article_count"
 LN_PROD_ARTICLE_COUNT_COLUMN = "ln_prod_article_count"
 LN_DURATION_COLUMN = "ln_duration"
-ORG_TYPE_FILTER_LIST = ["univ", "resi", "hosp", "comp", "coll", "npo", "gov"]
+ORG_TYPE_FILTER_LIST = ["uni", "res", "med", "comp", "coll", "npo", "gov"]
 DEFAULT_REGULARIZATION_STRENGTH = 3.0
 DEFAULT_ZERO_INFLATION_MODEL = "logit"
 DEFAULT_DISPERSION_POWER = 2
@@ -64,9 +64,9 @@ AFFILIATION_CLASS_COLUMN = "affiliation_class"
 
 Color = namedtuple("Color", ["red", "green", "blue"])
 ORG_TYPE_COLORS = {
-    "univ": Color(128, 0, 128),
-    "resi": Color(0, 106, 113),
-    "hosp": Color(51, 78, 255),
+    "uni": Color(128, 0, 128),
+    "res": Color(0, 106, 113),
+    "med": Color(51, 78, 255),
     "comp": Color(70, 236, 250),
     "coll": Color(255, 127, 0),
     "npo": Color(34, 153, 84),
@@ -80,28 +80,31 @@ EID_COLUMN = "eid"
 
 # link organisation type reclassification
 LEVEL_2_CLASSIFICATION = {
-    "hosp": "hosp",
+    "hosp": "med",
     "comp": "comp",
-    "resi": "resi",
+    "resi": "res",
     "npo": "npo",
-    "univ|resi": "univ",
-    "gov|resi": "resi",
-    "univ": "univ",
-    "comp|univ": "univ",
+    "univ|resi": "uni",
+    "gov|resi": "res",
+    "univ": "uni",
+    "comp|univ": "uni",
     "gov": "gov",
-    "comp|resi": "resi",
-    "meds|resi": "resi",
+    "comp|resi": "res",
+    "meds|resi": "res",
     "coll": "coll",
-    "univ|hosp": "univ",
-    "hosp|resi": "hosp",
-    "hosp|univ": "univ",
-    "gov|gov": "univ",
+    "univ|hosp": "uni",
+    "hosp|resi": "med",
+    "hosp|univ": "uni",
+    "gov|gov": "uni",
     "museum": "museum",
     "coll|resi": "coll",
-    "npo|resi": "resi",
+    "npo|resi": "res",
     "meds|npo": "npo",
     "milo": "milo",
     "other": "other",
+    "uni": "uni",
+    "res": "res",
+    "med": "med",
 }
 
 SAMPLES_COLUMN = "samples"

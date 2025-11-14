@@ -59,6 +59,16 @@ class PlotGrid:
             50, color="k", linewidth=1.0, linestyle="--"
         )
 
+        for ax in [ax1, ax2]:
+            ax.tick_params(axis="x", labelsize=config.tickx_label_size)
+            ax.tick_params(axis="y", labelsize=config.ticky_label_size)
+
+            if config.ylim_bottom is not None:
+                ax.set_ylim(bottom=config.ylim_bottom)
+
+            if config.ylim_top is not None:
+                ax.set_ylim(top=config.ylim_top)
+
         return cls(fig=fig, ax1=ax1, ax2=ax2, legend_ax=legend_ax)
 
     def add_legends_from_plot_config(

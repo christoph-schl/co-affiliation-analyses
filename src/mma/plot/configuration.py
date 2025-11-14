@@ -2,11 +2,10 @@
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple
 
-_DEFAULT_TITLE_A = "(a) affiliation_links_all"
-_DEFAULT_TITLE_B = "(b) affiliation_links_filtered"
+_DEFAULT_TITLE_A = "(a) CoAffAll"
+_DEFAULT_TITLE_B = "(b) CoAffStable"
 
 
-# ---------- Legend dataclasses (unchanged, slightly renamed fields) ----------
 @dataclass(frozen=True)
 class LegendConfig:
     placement: str = "best"
@@ -26,7 +25,6 @@ class PlotLegendConfig:
 DEFAULT_LEGEND = LegendConfig()
 
 
-# ---------- New figure-level config dataclass ----------
 @dataclass(frozen=True)
 class FigureConfig:
     create_hline: bool = True
@@ -39,20 +37,21 @@ class FigureConfig:
     height_ratio: List[float] = field(default_factory=lambda: [1, 0.1])
     tickx_label_size: int = 14
     ticky_label_size: int = 14
+    ylim_bottom: Optional[int] = None
+    ylim_top: Optional[int] = None
 
 
 # Default figure config
 DEFAULT_FIGURE = FigureConfig()
 
 
-# ---------- Combined per-plot config ----------
 @dataclass(frozen=True)
 class PlotConfig:
     legend: PlotLegendConfig
     figure: FigureConfig = DEFAULT_FIGURE
 
 
-# ---------- Per-plot configs (examples) ----------
+# ---------- Per-plot configs----------
 PLOT_CONFIGS: Dict[str, PlotConfig] = {
     "timeseries_by_org_type": PlotConfig(
         legend=PlotLegendConfig(
@@ -65,7 +64,6 @@ PLOT_CONFIGS: Dict[str, PlotConfig] = {
             axes2=None,
         ),
         figure=FigureConfig(
-            # override any figure-level defaults if you want
             create_hline=True,
             title_a=_DEFAULT_TITLE_A,
             title_b=_DEFAULT_TITLE_B,
@@ -74,6 +72,8 @@ PLOT_CONFIGS: Dict[str, PlotConfig] = {
             deactivate_ax2_ylabels=True,
             figure_size=(12, 6),
             height_ratio=[1, 0.09],
+            ylim_bottom=45,
+            ylim_top=100,
         ),
     ),
     "timeseries_by_preferred_name": PlotConfig(
@@ -95,6 +95,8 @@ PLOT_CONFIGS: Dict[str, PlotConfig] = {
             deactivate_ax2_ylabels=True,
             figure_size=(12, 6),
             height_ratio=[1, 0.17],
+            ylim_bottom=45,
+            ylim_top=100,
         ),
     ),
     "violine_by_org_type": PlotConfig(
@@ -131,7 +133,6 @@ PLOT_CONFIGS: Dict[str, PlotConfig] = {
             axes2=None,
         ),
         figure=FigureConfig(
-            # override any figure-level defaults if you want
             create_hline=False,
             title_a=_DEFAULT_TITLE_A,
             title_b=_DEFAULT_TITLE_B,
@@ -142,10 +143,4 @@ PLOT_CONFIGS: Dict[str, PlotConfig] = {
             height_ratio=[1, 0.01],
         ),
     ),
-}
-
-# Backwards compatibility helper (if you still want a plain LEGEND_BY_PLOT)
-# This keeps old code working if it expects LEGEND_BY_PLOT variable.
-LEGEND_BY_PLOT: Dict[str, PlotLegendConfig] = {
-    name: cfg.legend for name, cfg in PLOT_CONFIGS.items()
 }

@@ -453,9 +453,6 @@ def plot_violine(
         fill=False,
     )
 
-    ax.tick_params(axis="x", labelsize=12)
-    ax.tick_params(axis="y", labelsize=12)
-
     for mwpr_type in ("all", "first", "last"):
         add_mwpr_marker(
             axes=ax,
@@ -577,7 +574,6 @@ def plot_time_series(
     ax.grid(axis="x", linestyle="--", alpha=0.7)
     ax.grid(axis="y", visible=False)
     ax.set_xlabel("")  # keep caller free to set if desired
-    ax.set_ylabel("mwPR(F) [%]")
 
     # Legend layout (tuned for org_type vs other groupings)
     ncol = 7 if group_column == ORGANISATION_TYPE_COLUMN else legend_ncol_default
@@ -591,5 +587,8 @@ def plot_time_series(
     # If we created the figure, make room for the legend
     if axes is None:
         fig.subplots_adjust(bottom=0.22)
+
+    if ax.legend_ is not None:
+        ax.legend_.remove()
 
     return fig, ax
