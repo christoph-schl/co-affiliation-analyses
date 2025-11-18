@@ -5,30 +5,30 @@ import geopandas as gpd
 import pandas as pd
 from matplotlib import pyplot as plt
 
-from src.mma.constants import (
+from src.maa.constants import (
     AFFILIATION_CLASS_COLUMN,
     MWPR_COLUMN,
     ORGANISATION_TYPE_COLUMN,
     PREFERRED_AFFILIATION_NAME_COLUMN,
 )
-from src.mma.impact.impact import Impact
-from src.mma.impact.utils import (
+from src.maa.impact.impact import Impact
+from src.maa.impact.utils import (
     AffiliationMwpr,
     AffiliationType,
     aggregate_mwpr_over_time,
     compute_mwpr_for_affiliation_class,
     merge_impact_measures_to_nodes,
 )
-from src.mma.plot.configuration import PLOT_CONFIGS
-from src.mma.plot.constants import AFFILIATION_NAME_ALIASES
-from src.mma.plot.grid import PlotGrid
-from src.mma.plot.utils import (
+from src.maa.plot.configuration import PLOT_CONFIGS
+from src.maa.plot.constants import AFFILIATION_NAME_ALIASES
+from src.maa.plot.grid import PlotGrid
+from src.maa.plot.utils import (
     add_text_labels_to_bars,
     plot_bar,
     plot_time_series,
     plot_violine,
 )
-from src.mma.utils.utils import filter_organization_types, get_link_nodes
+from src.maa.utils.utils import filter_organization_types, get_link_nodes
 
 _COLOR_PALETTE: Dict[str, str] = {
     AffiliationType.AA.value: "#696969",  # grey

@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from src.mma.constants import (
+from src.maa.constants import (
     AFFILIATION_ID_FROM_COLUMN,
     AFFILIATION_ID_TO_COLUMN,
     DURATION_S_COLUMN,
@@ -14,11 +14,11 @@ from src.mma.constants import (
     ORGANISATION_TYPE_COLUMN,
     TO_NODE_COLUMN,
 )
-from src.mma.network.utils import create_graph_from_links
-from src.mma.utils.utils import filter_organization_types
-from src.mma.znib.configuration import ZINBConfig
-from src.mma.znib.utils import enrich_edges_with_org_info, get_znib_edges
-from src.mma.znib.znib import ZNIB
+from src.maa.network.utils import create_graph_from_links
+from src.maa.utils.utils import filter_organization_types
+from src.maa.znib.configuration import ZINBConfig
+from src.maa.znib.utils import enrich_edges_with_org_info, get_znib_edges
+from src.maa.znib.znib import ZNIB
 
 
 @pytest.mark.parametrize(

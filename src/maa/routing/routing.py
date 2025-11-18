@@ -5,13 +5,13 @@ import pandas as pd
 import pandera.pandas as pa
 from pandera.typing import DataFrame
 
-from src.mma.constants import (
+from src.maa.constants import (
     CHUNK_SIZE_PARALLEL_PROCESSING,
     DEFAULT_MAX_WORKERS_PARALLEL_PROCESSING,
 )
-from src.mma.dataframe.models.route import RouteSchema
-from src.mma.utils.geo_tools import add_geometry_to_edge_df, add_routes_to_edges
-from src.mma.utils.wrappers import parallelize_dataframe
+from src.maa.dataframe.models.route import RouteSchema
+from src.maa.utils.geo_tools import add_geometry_to_edge_df, add_routes_to_edges
+from src.maa.utils.wrappers import parallelize_dataframe
 
 logger = logging.getLogger(__name__)
 

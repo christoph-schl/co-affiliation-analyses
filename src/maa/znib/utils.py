@@ -9,7 +9,7 @@ import pandas as pd
 import statsmodels.api as sm
 import structlog
 
-from src.mma.constants import (
+from src.maa.constants import (
     AFFILIATION_EDGE_COUNT_COLUMN,
     AFFILIATION_ID_COLUMN,
     ARTICLE_COUNT_COLUMN,
@@ -21,8 +21,8 @@ from src.mma.constants import (
     TO_NODE_COLUMN,
     TRAVEL_TIME_SEC_COLUMN,
 )
-from src.mma.network.utils import get_combination_list
-from src.mma.utils.utils import filter_organization_types
+from src.maa.network.utils import get_combination_list
+from src.maa.utils.utils import filter_organization_types
 
 _logger = structlog.getLogger(__name__)
 

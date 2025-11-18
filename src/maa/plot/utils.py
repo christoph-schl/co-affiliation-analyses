@@ -10,7 +10,7 @@ from matplotlib.gridspec import GridSpec
 from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
 
-from src.mma.constants import (
+from src.maa.constants import (
     AFFILIATION_CLASS_COLUMN,
     COVER_DATE_COLUMN,
     HAZEN_PERCENTILE_COLUMN,
@@ -19,7 +19,7 @@ from src.mma.constants import (
     ORGANISATION_TYPE_COLUMN,
     PREFERRED_AFFILIATION_NAME_COLUMN,
 )
-from src.mma.impact.utils import AffiliationMwpr, AffiliationType
+from src.maa.impact.utils import AffiliationMwpr, AffiliationType
 
 _N_ROWS = 2
 _N_COLS = 2

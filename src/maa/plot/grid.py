@@ -4,12 +4,12 @@ from typing import Any, Mapping, Optional
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
 
-from src.mma.plot.configuration import (
+from src.maa.plot.configuration import (
     PLOT_CONFIGS,
     FigureConfig,
     PlotLegendConfig,
 )
-from src.mma.plot.utils import add_legend
+from src.maa.plot.utils import add_legend
 
 
 @dataclass

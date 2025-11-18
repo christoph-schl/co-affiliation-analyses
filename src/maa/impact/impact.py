@@ -4,15 +4,15 @@ from typing import List, Optional, Union
 import geopandas as gpd
 import pandas as pd
 
-from src.mma.constants import (
+from src.maa.constants import (
     DEFAULT_MAX_WORKERS_PARALLEL_PROCESSING,
 )
-from src.mma.impact.utils import (
+from src.maa.impact.utils import (
     compute_rolling_mwpr,
     get_mean_weighted_percentile_ranks,
     merge_impact_measures_to_nodes,
 )
-from src.mma.utils.utils import filter_organization_types, get_link_nodes
+from src.maa.utils.utils import filter_organization_types, get_link_nodes
 
 
 @dataclass

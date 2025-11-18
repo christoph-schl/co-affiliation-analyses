@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from src.mma.constants import (
+from src.maa.constants import (
     AFFILIATION_CLASS_COLUMN,
     ARTICLE_AUTHOR_ID_COLUMN,
     EID_COLUMN,
@@ -15,14 +15,14 @@ from src.mma.constants import (
     PREFERRED_AFFILIATION_NAME_COLUMN,
     TO_AFFILIATION_INDEX_COLUMN,
 )
-from src.mma.impact.impact import Impact
-from src.mma.impact.utils import (
+from src.maa.impact.impact import Impact
+from src.maa.impact.utils import (
     AffiliationType,
     get_mean_weighted_percentile_ranks,
     merge_impact_measures_to_nodes,
 )
-from src.mma.network.network import AffiliationNetworkProcessor
-from src.mma.utils.utils import get_link_nodes
+from src.maa.network.network import AffiliationNetworkProcessor
+from src.maa.utils.utils import get_link_nodes
 
 _COUNTRY_COLUMN = "country"
 _MAX_AFFILIATION_IDX_COLUMN = "max_affiliation_idx"

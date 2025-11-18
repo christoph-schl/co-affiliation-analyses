@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import structlog
 
-from src.mma.constants import (
+from src.maa.constants import (
     AFFILIATION_CLASS_COLUMN,
     CLASS_NAME_COLUMN,
     COVER_DATE_COLUMN,
@@ -18,7 +18,7 @@ from src.mma.constants import (
     ORGANISATION_TYPE_COLUMN,
     SAMPLES_COLUMN,
 )
-from src.mma.utils.wrappers import get_execution_time, parallelize_dataframe
+from src.maa.utils.wrappers import get_execution_time, parallelize_dataframe
 
 _logger = structlog.getLogger(__name__)
 

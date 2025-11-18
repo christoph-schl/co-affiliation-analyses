@@ -9,7 +9,7 @@ import pandas as pd
 import structlog
 from networkx import Graph
 
-from src.mma.constants import (
+from src.maa.constants import (
     AFFILIATION_EDGE_COUNT_COLUMN,
     AFFILIATION_ID_COLUMN,
     ARTICLE_AFFILIATION_COUNT_COLUMN,
@@ -28,9 +28,9 @@ from src.mma.constants import (
     TO_NODE_COLUMN,
     WGS84_EPSG,
 )
-from src.mma.utils.geo_tools import create_line_geometries
-from src.mma.utils.utils import filter_links_by_country
-from src.mma.utils.wrappers import get_execution_time, parallelize_dataframe
+from src.maa.utils.geo_tools import create_line_geometries
+from src.maa.utils.utils import filter_links_by_country
+from src.maa.utils.wrappers import get_execution_time, parallelize_dataframe
 
 _logger = structlog.getLogger()
 

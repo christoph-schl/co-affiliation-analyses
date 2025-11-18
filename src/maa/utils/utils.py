@@ -6,9 +6,9 @@ import pandas as pd
 import pycountry
 import structlog
 
-import src.mma.constants as constants
-from src.mma.constants import GEOMETRY_COLUMN
-from src.mma.utils.wrappers import get_execution_time
+import src.maa.constants as constants
+from src.maa.constants import GEOMETRY_COLUMN
+from src.maa.utils.wrappers import get_execution_time
 
 _logger = structlog.getLogger(__name__)
 

@@ -1,13 +1,13 @@
 import pandas as pd
 
-from src.mma.constants import (
+from src.maa.constants import (
     MWPR_COLUMN,
     ORGANISATION_TYPE_COLUMN,
     PREFERRED_AFFILIATION_NAME_COLUMN,
 )
-from src.mma.impact.utils import compute_mwpr_for_affiliation_class
-from src.mma.network.utils import retain_affiliation_links_with_min_year_gap
-from src.mma.plot.plot import ImpactPlot
+from src.maa.impact.utils import compute_mwpr_for_affiliation_class
+from src.maa.network.utils import retain_affiliation_links_with_min_year_gap
+from src.maa.plot.plot import ImpactPlot
 
 _NUMBER_OF_GROUPS = 10
 

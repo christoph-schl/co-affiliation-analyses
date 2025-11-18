@@ -8,7 +8,7 @@ from geopandas import GeoDataFrame
 from routingpy import Valhalla
 from shapely import LineString
 
-from src.mma.constants import (
+from src.maa.constants import (
     AFFILIATION_ID_COLUMN,
     AFFILIATION_ID_FROM_COLUMN,
     AFFILIATION_ID_TO_COLUMN,
@@ -19,7 +19,7 @@ from src.mma.constants import (
     GEOMETRY_COLUMN,
     TO_NODE_COLUMN,
 )
-from src.mma.utils.wrappers import df_split
+from src.maa.utils.wrappers import df_split
 
 _logger = structlog.getLogger()
 _TEMPORARY_GEOMETRY_COLUMN = "temp_geom"
