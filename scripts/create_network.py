@@ -1,8 +1,6 @@
-# src/maa/cli_network.py
 from __future__ import annotations
 
 import argparse
-import logging
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Generator, Iterable, Iterator
@@ -13,6 +11,7 @@ import structlog
 from src.maa.config import load_config_for_stage
 from src.maa.config.constants import CONFIGURATION_PATH, ProcessingStage
 from src.maa.config.models import NetworkConfig
+from src.maa.config.utils import configure_logging
 from src.maa.dataframe.models.affiliation import read_affiliations
 from src.maa.dataframe.models.article import read_articles
 from src.maa.network.network import AffiliationNetworkProcessor
@@ -45,28 +44,6 @@ class YearGapResult:
     suffix: str
     graph: Any
     link_gdf: Any
-
-
-def configure_logging(debug: bool) -> None:
-    """
-    Configure structlog for CLI usage.
-
-    This configures a console-friendly renderer, timestamper and exception helpers,
-    and sets the minimum log level according to `debug`.
-    """
-    structlog.configure(
-        processors=[
-            structlog.processors.TimeStamper(fmt="iso"),
-            structlog.dev.set_exc_info,
-            structlog.processors.StackInfoRenderer(),
-            structlog.processors.format_exc_info,
-            structlog.dev.ConsoleRenderer(),
-        ],
-        wrapper_class=structlog.make_filtering_bound_logger(
-            min_level=logging.DEBUG if debug else logging.INFO
-        ),
-        cache_logger_on_first_use=True,
-    )
 
 
 def iter_year_gaps(stable_gap: int) -> Iterator[YearGapEntry]:
