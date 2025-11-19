@@ -12,7 +12,7 @@ import structlog
 from tqdm import tqdm
 
 # isort: off
-from src.maa.constants import (
+from maa.constants.constants import (
     CHUNK_SIZE_PARALLEL_PROCESSING,
     DEFAULT_MAX_WORKERS_PARALLEL_PROCESSING,
 )

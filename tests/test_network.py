@@ -5,22 +5,22 @@ import geopandas as gpd
 import pandas as pd
 import pytest
 
-from src.maa.constants import (
+from maa.constants.constants import (
     AFFILIATION_EDGE_COUNT_COLUMN,
     ARTICLE_AUTHOR_ID_COLUMN,
     ARTICLE_COUNT_COLUMN,
     FROM_NODE_COLUMN,
 )
-from src.maa.network.network import (
+from maa.network.network import (
     AffiliationNetworkProcessor,
     apply_parent_affiliation_id_and_idx,
 )
-from src.maa.network.utils import (
+from maa.network.utils import (
     create_affiliation_links,
     create_graph_from_links,
     retain_affiliation_links_with_min_year_gap,
 )
-from src.maa.utils.utils import get_affiliation_id_map, get_articles_per_author
+from maa.utils.utils import get_affiliation_id_map, get_articles_per_author
 
 
 def test_get_articles_per_author(article_df: pd.DataFrame) -> None:

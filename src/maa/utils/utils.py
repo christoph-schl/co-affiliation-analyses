@@ -6,9 +6,8 @@ import pandas as pd
 import pycountry
 import structlog
 
-import src.maa.constants as constants
-from src.maa.constants import GEOMETRY_COLUMN
-from src.maa.utils.wrappers import get_execution_time
+import maa.constants.constants as constants
+from maa.utils.wrappers import get_execution_time
 
 _logger = structlog.getLogger(__name__)
 
@@ -228,8 +227,8 @@ def get_link_nodes(link_gdf: Union[gpd.GeoDataFrame, pd.DataFrame]) -> pd.DataFr
     # concat, drop geometry, sort and reset index (keeps original behavior)
     node_df = pd.concat([from_df, to_df], ignore_index=True)
 
-    if GEOMETRY_COLUMN in node_df.columns:
-        node_df = node_df.drop(columns=[GEOMETRY_COLUMN])
+    if constants.GEOMETRY_COLUMN in node_df.columns:
+        node_df = node_df.drop(columns=[constants.GEOMETRY_COLUMN])
 
     sort_columns = [constants.EID_COLUMN, constants.ARTICLE_AUTHOR_ID_COLUMN]
     if constants.ARTICLE_AFFILIATION_INDEX_COLUMN in node_df.columns:

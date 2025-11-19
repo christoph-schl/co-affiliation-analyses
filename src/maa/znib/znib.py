@@ -10,10 +10,10 @@ from statsmodels.discrete.count_model import (
 )
 from statsmodels.iolib.summary import Summary
 
-from src.maa.network.network import AffiliationNetworkProcessor
-from src.maa.utils.wrappers import get_execution_time
-from src.maa.znib.configuration import ZINBConfig
-from src.maa.znib.utils import ZNIBInput, enrich_edges_with_org_info
+from maa.network.network import AffiliationNetworkProcessor
+from maa.utils.wrappers import get_execution_time
+from maa.znib.configuration import ZINBConfig
+from maa.znib.utils import ZNIBInput, enrich_edges_with_org_info
 
 
 class ZINBModel:

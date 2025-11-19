@@ -1,4 +1,3 @@
-# src/maa/config/constants.py
 from __future__ import annotations
 
 import enum

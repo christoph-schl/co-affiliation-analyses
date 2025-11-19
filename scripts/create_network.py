@@ -8,13 +8,13 @@ from typing import Any, Generator, Iterable, Iterator
 import nx2vos
 import structlog
 
-from src.maa.config import load_config_for_stage
-from src.maa.config.constants import CONFIGURATION_PATH, ProcessingStage
-from src.maa.config.models import NetworkConfig
-from src.maa.config.utils import configure_logging
-from src.maa.dataframe.models.affiliation import read_affiliations
-from src.maa.dataframe.models.article import read_articles
-from src.maa.network.network import AffiliationNetworkProcessor
+from maa.config import load_config_for_stage
+from maa.config.constants import CONFIGURATION_PATH, ProcessingStage
+from maa.config.models import NetworkConfig
+from maa.config.utils import configure_logging
+from maa.dataframe.models.affiliation import read_affiliations
+from maa.dataframe.models.article import read_articles
+from maa.network.network import AffiliationNetworkProcessor
 
 _logger = structlog.getLogger(__name__)
 
@@ -180,7 +180,7 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--validate-paths",
         action="store_true",
         dest="validate_paths",
-        default=True,
+        # default=True,
     )
     p.add_argument("--dry-run", action="store_true")
     p.add_argument("--debug", action="store_true")

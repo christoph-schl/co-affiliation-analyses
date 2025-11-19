@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 import structlog
 
-from src.maa.constants import (
+from maa.constants.constants import (
     ARTICLE_AFFILIATION_ID_COLUMN,
     ARTICLE_AFFILIATION_INDEX_COLUMN,
     LEVEL_2_CLASSIFICATION,
@@ -16,23 +16,23 @@ from src.maa.constants import (
     PREFERRED_AFFILIATION_NAME_COLUMN,
     UNMAPPED_AFFILIATION_ID_COLUMN,
 )
-from src.maa.dataframe.models.affiliation import AffiliationSchema
-from src.maa.dataframe.models.article import ArticleSchema
-from src.maa.network.utils import (
+from maa.dataframe.models.affiliation import AffiliationSchema
+from maa.dataframe.models.article import ArticleSchema
+from maa.network.utils import (
     Edge,
     create_affiliation_links,
     create_graph_from_links,
     get_vos_cluster_numbers,
     retain_affiliation_links_with_min_year_gap,
 )
-from src.maa.plot.constants import AFFILIATION_NAME_ALIASES
-from src.maa.utils.utils import (
+from maa.plot.constants import AFFILIATION_NAME_ALIASES
+from maa.utils.utils import (
     get_affiliation_id_map,
     get_articles_per_author,
     get_link_nodes,
     validate_country_code,
 )
-from src.maa.utils.wrappers import get_execution_time, parallelize_dataframe
+from maa.utils.wrappers import get_execution_time, parallelize_dataframe
 
 _logger = structlog.getLogger()
 

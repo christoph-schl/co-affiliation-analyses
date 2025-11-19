@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from typing import List, Union
 
-from src.maa.constants import (
+from maa.constants.constants import (
     DEFAULT_DISPERSION_POWER,
     DEFAULT_FIT_METHOD,
     DEFAULT_MAX_ITERATIONS,
