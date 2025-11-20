@@ -6,7 +6,8 @@ from pathlib import Path
 DATA_CONFIG_FOLDER = "config"
 DATA_CONFIG_FILE = "config.toml"
 
-CONFIGURATION_PATH = Path(__file__).resolve().parents[3] / DATA_CONFIG_FOLDER / DATA_CONFIG_FILE
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
+CONFIGURATION_PATH = PROJECT_ROOT / DATA_CONFIG_FOLDER / DATA_CONFIG_FILE
 
 
 class ProcessingStage(enum.Enum):

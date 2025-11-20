@@ -6,6 +6,8 @@ from typing import Any, Dict, Optional
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from maa.config.constants import PROJECT_ROOT
+
 
 def _expand_str(s: str) -> str:
     return os.path.expandvars(os.path.expanduser(s))
@@ -38,7 +40,6 @@ class BaseConfig(BaseModel):
         Converts string path fields into Path objects,
         applying data_root to resolve relative paths.
         """
-        data_root = values.get("data_root")
 
         for name, val in list(values.items()):
             if val is None or not isinstance(val, str):
@@ -60,8 +61,8 @@ class BaseConfig(BaseModel):
 
             if annotated_as_path or looks_like_path:
                 p = Path(_expand_str(val))
-                if data_root and not p.is_absolute():
-                    p = (Path(data_root) / p).resolve()
+                if not p.is_absolute():
+                    p = Path(PROJECT_ROOT) / p
                 else:
                     p = p.resolve()
                 values[name] = p
