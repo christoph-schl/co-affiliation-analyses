@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Generator, Iterable, Iterator
+from typing import Any, Dict, Generator, Iterable, Iterator
 
 import nx2vos
 import structlog
@@ -67,7 +67,7 @@ def _ensure_parent(path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
 
 
-def _output_file_paths(output_root: Path, suffix: str) -> dict:
+def _output_file_paths(output_root: Path, suffix: str) -> Dict[str, Path]:
     """
     Return output file paths for a given suffix.
     """
