@@ -99,7 +99,27 @@ def _write_outputs(graph: Any, link_gdf: Any, output_root: Path, suffix: str) ->
 def get_network_from_config(
     article_df: Any, affiliation_gdf: Any, net_cfg: NetworkConfig
 ) -> Generator[YearGapResult, None, None]:
-    """Build networks for each year-gap configuration variant."""
+    """
+    Build affiliation networks for each configured year-gap variant.
+
+    This includes:
+      • the complete dataset ("all"), and
+      • the stable co-affiliation variant ("stable"),
+    as defined in the network configuration.
+
+    :param article_df:
+        DataFrame containing article metadata.
+    :param affiliation_gdf:
+        GeoDataFrame containing affiliation information.
+    :param net_cfg:
+        NetworkConfig object defining year-gap parameters and paths.
+    :Yields:
+        YearGapResult:
+            An object containing:
+                • suffix: the variant name ("all", "stable", ...)
+                • graph: the constructed affiliation graph
+                • link_gdf: the GeoDataFrame of computed affiliation links
+    """
 
     processor = AffiliationNetworkProcessor(
         article_df=article_df,
