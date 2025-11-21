@@ -1,12 +1,12 @@
 from pathlib import Path
-from typing import Any
 
 from .loader import load_toml_group_to_model
+from .models import config_types
 
 
 def load_config_for_stage(
     config_file: Path, stage_group: str, *, validate_paths_exist: bool = False
-) -> Any:
+) -> config_types:
     """
     High-level factory: given path to config and a stage group string
     (e.g. "network" or "bibliometrics.network")

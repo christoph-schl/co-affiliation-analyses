@@ -5,7 +5,7 @@ from typing import Any, Dict, Type, Union, cast
 
 from pydantic import ValidationError
 
-from .models import BaseConfig
+from .models import BaseConfig, GravityConfig, NetworkConfig, config_types
 from .registry import MODEL_REGISTRY
 
 try:
@@ -57,6 +57,16 @@ def _get_group(raw: Dict[str, Any], group: str) -> Dict[str, Any]:
     return sub
 
 
+def _find_key_for_model(model_cls: Type[BaseConfig]) -> str | None:
+    """
+    Return the key under which this model is registered in MODEL_REGISTRY.
+    """
+    for key, cls in MODEL_REGISTRY.items():
+        if cls is model_cls:
+            return key
+    return None
+
+
 # ------------------------------------------------------------
 # Public API
 # ------------------------------------------------------------
@@ -65,7 +75,7 @@ def load_toml_group_to_model(
     group: str,
     *,
     validate_paths_exist: bool = False,
-) -> BaseConfig:
+) -> config_types:
     """
     Load a configuration section from a TOML file and instantiate its model.
 
@@ -87,25 +97,42 @@ def load_toml_group_to_model(
         raise FileNotFoundError(f"TOML file not found: {toml_file}")
 
     raw = _load_toml(toml_file)
-    group_dict = _get_group(raw, group)
 
+    # --- Resolve model class ---
     model_key = group.split(".")[-1]
     model_cls = MODEL_REGISTRY.get(model_key)
-
     if model_cls is None:
-        raise KeyError(
-            f"No registered model for group '{model_key}'. " f"Add it to MODEL_REGISTRY."
-        )
+        raise KeyError(f"No registered model for group '{model_key}'. Add it to MODEL_REGISTRY.")
 
-    # tell the type checker what the model class is
     model_type = cast(Type[BaseConfig], model_cls)
 
+    # --- Collect configs from all inherited models ---
+    merged_dict: Dict[str, Path] = {}
+
+    for base in reversed(model_type.__mro__):
+        # Stop at BaseConfig or object
+        if base is BaseConfig or base is object:
+            continue
+
+        # Find the TOML group name corresponding to this base class
+        base_key = _find_key_for_model(base)
+        if base_key is None:
+            continue
+
+        # Load section if present in TOML
+        if base_key in raw:
+            merged_dict.update(raw[base_key])
+
+    # --- Validation ---
     try:
-        instance = model_type(**group_dict)
+        instance = model_type(**merged_dict)
     except ValidationError as exc:
         raise ValueError(f"Validation failed for config group '{group}':\n{exc}") from exc
 
     if validate_paths_exist:
         instance.check_paths_exist()
+
+    # 🔥type narrowing for mypy:
+    assert isinstance(instance, (NetworkConfig, GravityConfig))
 
     return instance

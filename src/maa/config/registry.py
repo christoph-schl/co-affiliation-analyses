@@ -4,9 +4,9 @@ from typing import Dict, Type
 
 from pydantic import BaseModel
 
-from .models import NetworkConfig, ZnibConfig
+from .models import GravityConfig, NetworkConfig
 
 MODEL_REGISTRY: Dict[str, Type[BaseModel]] = {
     "network": NetworkConfig,
-    "znib": ZnibConfig,
+    "gravity": GravityConfig,
 }

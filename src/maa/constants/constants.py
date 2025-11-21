@@ -1,5 +1,6 @@
 import os
 from collections import namedtuple
+from pathlib import Path
 
 # affiliation column names
 AFFILIATION_ID_COLUMN = "affiliation_id"
@@ -108,3 +109,13 @@ LEVEL_2_CLASSIFICATION = {
 }
 
 SAMPLES_COLUMN = "samples"
+NETWORK_COUNTRY = "AUT"
+
+LINK_DIR = Path("links")
+VOS_DIR = Path("vos/map")
+GRAVITY_INPUT_DIR = Path("gravity/input")
+
+AFFILIATION_LINKS_PREFIX = "affiliation_links"
+VOS_MAP_PREFIX = "map"
+VOS_NETWORK_PREFIX = "network"
+GRAVITY_INPUT_PREFIX = "model_input"

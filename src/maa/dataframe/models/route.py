@@ -21,3 +21,16 @@ def read_routes(path: Path) -> DataFrame[RouteSchema]:
     else:
         df = pd.read_csv(path)
     return df
+
+
+@pa.check_types(lazy=True)
+def get_empty_routes_df() -> DataFrame[RouteSchema]:
+    """
+    Create empty routes dataframe.
+    :return: An empty routes dataframe.
+    """
+    schema = RouteSchema.to_schema()
+    empty_df = pd.DataFrame(
+        {col: pd.Series(dtype=field.dtype.type) for col, field in schema.columns.items()}
+    )
+    return empty_df
