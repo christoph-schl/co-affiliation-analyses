@@ -2,7 +2,7 @@
 [network]
 article_file_path = "data/scopus/article_2013-01-01_2022-12-31.parquet"
 affiliation_file_path = "data/scopus/affiliation_2013-01-01_2022-12-31.gpkg"
-output_path = "data/output/network"
+output_path = "data/output"
 year_gap_stable_links = 2
 
 [gravity]

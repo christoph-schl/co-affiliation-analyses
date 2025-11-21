@@ -111,8 +111,8 @@ LEVEL_2_CLASSIFICATION = {
 SAMPLES_COLUMN = "samples"
 NETWORK_COUNTRY = "AUT"
 
-LINK_DIR = Path("links")
-VOS_DIR = Path("vos/map")
+LINK_DIR = Path("network/links")
+VOS_DIR = Path("network/vos")
 GRAVITY_INPUT_DIR = Path("gravity/input")
 
 AFFILIATION_LINKS_PREFIX = "affiliation_links"
