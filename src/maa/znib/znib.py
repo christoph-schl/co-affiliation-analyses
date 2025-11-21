@@ -13,7 +13,7 @@ from statsmodels.iolib.summary import Summary
 from maa.network.network import AffiliationNetworkProcessor
 from maa.utils.wrappers import get_execution_time
 from maa.znib.configuration import ZINBConfig
-from maa.znib.utils import ZNIBInput, enrich_edges_with_org_info
+from maa.znib.utils import ZNIBInput, enrich_edges_with_org_info, model_results_to_df
 
 
 class ZINBModel:
@@ -81,6 +81,16 @@ class ZINBModel:
     def summary(self) -> Optional[Summary]:
         if self._result is not None:
             return self._result.summary()
+        return None
+
+    @property
+    def result(self) -> Optional[ZeroInflatedNegativeBinomialResultsWrapper]:
+        return self._result
+
+    @property
+    def result_df(self) -> Optional[pd.DataFrame]:
+        if self._result is not None:
+            return model_results_to_df(znib_result=self._result)
         return None
 
 
@@ -177,6 +187,7 @@ class ZNIB(AffiliationNetworkProcessor):
                 edge_gdf=self.edge.gdf, route_df=route_df, org_type_list=org_type_list
             )
 
+    @get_execution_time
     def fit_znib(
         self, config: ZINBConfig, enriched_edge_df: Optional[pd.DataFrame] = None
     ) -> ZINBModel:

@@ -114,8 +114,11 @@ NETWORK_COUNTRY = "AUT"
 LINK_DIR = Path("network/links")
 VOS_DIR = Path("network/vos")
 GRAVITY_INPUT_DIR = Path("gravity/input")
+GRAVITY_OUTPUT_DIR = Path("gravity/output")
 
 AFFILIATION_LINKS_PREFIX = "affiliation_links"
 VOS_MAP_PREFIX = "map"
 VOS_NETWORK_PREFIX = "network"
 GRAVITY_INPUT_PREFIX = "model_input"
+GRAVITY_INTRA_RESULTS_PREFIX = "intra_results"
+GRAVITY_INTER_RESULTS_PREFIX = "inter_results"

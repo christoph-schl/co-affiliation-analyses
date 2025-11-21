@@ -114,6 +114,7 @@ class GravityConfig(NetworkConfig):
     routes_file_path: Path = Field(
         ..., description="CSV with travel time information for gravity modelling"
     )
+    fit_models: bool = Field(..., description="Whether to fit the gravity models.")
 
     def load_inputs(self) -> "LoadedGravityInputs":
         # Load the inherited inputs first

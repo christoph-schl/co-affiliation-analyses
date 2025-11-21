@@ -16,6 +16,7 @@ from maa.config.constants import CONFIGURATION_PATH, ProcessingStage
 from maa.config.models import GravityConfig, LoadedGravityInputs
 from maa.constants.constants import NETWORK_COUNTRY, ORG_TYPE_FILTER_LIST
 from maa.dataframe.models.route import get_empty_routes_df
+from maa.znib.configuration import config_inter_proximity, config_intra_proximity
 from maa.znib.znib import ZNIB
 
 _logger = structlog.getLogger(__name__)
@@ -30,8 +31,8 @@ def get_gravity_input_from_config(
     """
     Build ZNIB gravity model input for each configured year-gap variant.
 
-    This includes:
-      • the complete dataset ("all"), and
+    Generates results for:
+      • the complete co-affiliation dataset ("all"), and
       • the stable co-affiliation variant ("stable"),
     as defined in the network configuration.
 
@@ -62,8 +63,29 @@ def get_gravity_input_from_config(
             route_df=routes_df,
             org_type_list=ORG_TYPE_FILTER_LIST,
         )
+
+        znib_intra_model = None
+        znib_inter_model = None
+        if gravity_cfg.fit_models:
+            _logger.info(
+                "fit intra organisational znib gravity model", gap=yg.gap, suffix=yg.suffix
+            )
+            znib_intra_model = znib.fit_znib(config=config_intra_proximity)
+            _logger.info(znib_intra_model.summary)
+
+            _logger.info(
+                "fit inter organisational znib gravity model", gap=yg.gap, suffix=yg.suffix
+            )
+            znib_inter_model = znib.fit_znib(config=config_inter_proximity)
+            _logger.info(znib_inter_model.summary)
+
         yield ZNIBGravityResult(
-            suffix=yg.suffix, graph=znib.edge, link_gdf=znib.link, znib_data=model_data
+            suffix=yg.suffix,
+            graph=znib.edge,
+            link_gdf=znib.link,
+            znib_data=model_data,
+            znib_intra_model=znib_intra_model,
+            znib_inter_model=znib_inter_model,
         )
 
 
@@ -87,8 +109,7 @@ def get_gravity_input_from_config(
 @click.option("--dry-run", is_flag=True, help="Do not write any files.")
 @click.option("--debug", is_flag=True, help="Enable verbose logging.")
 def main(config: Path, stage: str, validate_paths: bool, dry_run: bool, debug: bool) -> None:
-    """CLI entry point for building affiliation networks."""
-    """CLI entry point for building affiliation networks."""
+    """CLI entry point for creating znib gravity model inputs and fitting the models."""
 
     input_data = load_inputs_from_config(
         config=config, stage=stage, validate_paths=validate_paths, debug=debug

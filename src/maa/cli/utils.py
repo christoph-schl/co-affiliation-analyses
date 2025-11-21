@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Iterable, Iterator, Union
+from typing import Any, Iterable, Iterator, Optional, Union
 
 import geopandas as gpd
 import nx2vos
@@ -14,11 +14,15 @@ from maa.constants.constants import (
     AFFILIATION_LINKS_PREFIX,
     GRAVITY_INPUT_DIR,
     GRAVITY_INPUT_PREFIX,
+    GRAVITY_INTER_RESULTS_PREFIX,
+    GRAVITY_INTRA_RESULTS_PREFIX,
+    GRAVITY_OUTPUT_DIR,
     LINK_DIR,
     VOS_DIR,
     VOS_MAP_PREFIX,
     VOS_NETWORK_PREFIX,
 )
+from maa.znib.znib import ZINBModel
 
 _logger = structlog.getLogger(__name__)
 
@@ -97,6 +101,14 @@ class OutputPaths:
     def gravity(self) -> Path:
         return self._path(GRAVITY_INPUT_DIR, f"{GRAVITY_INPUT_PREFIX}_{self.suffix}.txt")
 
+    @property
+    def intra_result(self) -> Path:
+        return self._path(GRAVITY_OUTPUT_DIR, f"{GRAVITY_INTRA_RESULTS_PREFIX}_{self.suffix}.txt")
+
+    @property
+    def inter_result(self) -> Path:
+        return self._path(GRAVITY_OUTPUT_DIR, f"{GRAVITY_INTER_RESULTS_PREFIX}_{self.suffix}.txt")
+
 
 @dataclass(frozen=True)
 class NetworkResult:
@@ -113,18 +125,30 @@ class NetworkResult:
         nx2vos.write_vos_network(G=self.graph.graph, fname=output_paths.network)
 
 
+def _write_model(model: Optional[ZINBModel], path: Path) -> None:
+    if model is None:
+        return
+    df = getattr(model, "result_df", None)
+    if df is not None:
+        df.to_csv(path, index=False)
+
+
 @dataclass(frozen=True)
 class ZNIBGravityResult(NetworkResult):
     """Result of a gravity model run (extends a base network)."""
 
     znib_data: pd.DataFrame
+    znib_intra_model: Optional[ZINBModel] = None
+    znib_inter_model: Optional[ZINBModel] = None
 
     def write(self, output_paths: "OutputPaths") -> None:
         """Write base network outputs + gravity-specific outputs."""
         super().write(output_paths)
 
-        # Write gravity-specific data
         self.znib_data.to_csv(output_paths.gravity, index=False)
+
+        _write_model(self.znib_intra_model, output_paths.intra_result)
+        _write_model(self.znib_inter_model, output_paths.inter_result)
 
 
 def iter_year_gaps(stable_gap: int) -> Iterator[YearGapEntry]:

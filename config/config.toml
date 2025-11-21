@@ -7,3 +7,4 @@ year_gap_stable_links = 2
 
 [gravity]
 routes_file_path = "data/valhalla/enriched_edges.csv"
+fit_models = true

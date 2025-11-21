@@ -8,6 +8,7 @@ import numpy.typing as npt
 import pandas as pd
 import statsmodels.api as sm
 import structlog
+from statsmodels.discrete.count_model import ZeroInflatedNegativeBinomialResultsWrapper
 
 from maa.constants.constants import (
     AFFILIATION_EDGE_COUNT_COLUMN,
@@ -27,6 +28,15 @@ from maa.utils.utils import filter_organization_types
 _logger = structlog.getLogger(__name__)
 
 _SAME_ORG_TYPE_COLUMN_NAME = "same_org"
+
+_COEFFICIENT_COLUMN = "Coef."
+_STD_ERROR_COLUMN = "Robust Std.Err."
+_P_VALUE_COLUMN = "P>|z|"
+
+_SUMMARY_RENAME_MAP = {"Std.Err.": "Robust Std.Err."}
+_HEADING_BINOMIAL = "Negative Binomial model"
+_HEADING_LOGIT = "Logit Model"
+_COLUMNS = [_COEFFICIENT_COLUMN, _STD_ERROR_COLUMN, _P_VALUE_COLUMN]
 
 
 def _build_proximity_dict(org_types: list[str]) -> dict[str, dict[str, str]]:
@@ -366,3 +376,60 @@ def prepare_znib_input(
     inflation = sm.add_constant(df[zero_inflation_vars].copy(), has_constant="add")
 
     return ZNIBInput(dependent=dependent, predictors=predictors, inflation=inflation)
+
+
+def _make_heading_row(name: str) -> pd.DataFrame:
+    row = pd.DataFrame([[np.nan] * len(_COLUMNS)], columns=_COLUMNS)
+    row.index = [name]
+    return row
+
+
+def _add_significance_codes(result_df: pd.DataFrame) -> pd.DataFrame:
+    """Add significance stars based on p-values."""
+    code_column = "code"
+    result_df[code_column] = "   "
+    result_df.loc[(result_df[_P_VALUE_COLUMN] < 0.1, code_column)] = ".  "
+    result_df.loc[(result_df[_P_VALUE_COLUMN] < 0.05, code_column)] = "*  "
+    result_df.loc[(result_df[_P_VALUE_COLUMN] < 0.01, code_column)] = "** "
+    result_df.loc[result_df[_P_VALUE_COLUMN] < 0.001, code_column] = "***"
+    result_df[code_column] = (
+        result_df[_P_VALUE_COLUMN].apply(lambda x: f"{x:.4f}") + " " + result_df[code_column]
+    )
+    result_df[_P_VALUE_COLUMN] = np.where(
+        result_df[_P_VALUE_COLUMN].notnull(), result_df[code_column], result_df[_P_VALUE_COLUMN]
+    )
+    result_df = result_df.drop(columns=[code_column])
+    return result_df
+
+
+def model_results_to_df(znib_result: ZeroInflatedNegativeBinomialResultsWrapper) -> pd.DataFrame:
+    """
+    Converts model results to pandas DataFrame.
+    :param znib_result: The ZINB model results
+    :return: The model results as pandas DataFrame.
+    """
+    summary_df = znib_result.summary2().tables[1].round(4)
+    summary_df = summary_df.rename(columns=_SUMMARY_RENAME_MAP)
+
+    heading_line1 = _make_heading_row(name=_HEADING_BINOMIAL)
+    heading_line2 = _make_heading_row(name=_HEADING_LOGIT)
+
+    log_df = summary_df[_COLUMNS].head(3)
+    binom_df = summary_df[_COLUMNS].iloc[3:-1]
+
+    for col in [_COEFFICIENT_COLUMN, _STD_ERROR_COLUMN]:
+        log_df[col] = log_df[col].apply(lambda x: f"{x:.4f}")
+        binom_df[col] = binom_df[col].apply(lambda x: f"{x:.4f}")
+
+    result_df = pd.concat(
+        [
+            heading_line1[_COLUMNS],
+            binom_df[_COLUMNS],
+            heading_line2[_COLUMNS],
+            log_df[_COLUMNS],
+        ]
+    )
+
+    result_df = _add_significance_codes(result_df=result_df)
+
+    return result_df

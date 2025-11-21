@@ -33,7 +33,7 @@ config_same = ZINBConfig(
 )
 
 
-config_proximity = ZINBConfig(
+config_intra_proximity = ZINBConfig(
     dependent_var="affiliation_edge_count",
     predictor_vars=[
         "ln_prod_article_count",
@@ -43,7 +43,7 @@ config_proximity = ZINBConfig(
         "med_med",
         "comp_comp",
         "coll_coll",
-        "ngo_ngo",
+        "npo_npo",
         "gov_gov",
     ],
     inflation_var="ln_prod_article_count",
@@ -51,7 +51,7 @@ config_proximity = ZINBConfig(
     alpha_reg=3.0,
 )
 
-config_distance = ZINBConfig(
+config_inter_proximity = ZINBConfig(
     dependent_var="affiliation_edge_count",
     predictor_vars=[
         "ln_prod_article_count",
@@ -59,23 +59,23 @@ config_distance = ZINBConfig(
         "coll_comp",
         "coll_gov",
         "coll_med",
-        "coll_ngo",
+        "coll_npo",
         "coll_res",
         "coll_uni",
         "comp_gov",
         "comp_med",
-        "comp_ngo",
+        "comp_npo",
         "comp_res",
         "comp_uni",
         "gov_med",
-        "gov_ngo",
+        "gov_npo",
         "gov_res",
         "gov_uni",
-        "med_ngo",
+        "med_npo",
         "med_res",
         "med_uni",
-        "ngo_res",
-        "ngo_uni",
+        "npo_res",
+        "npo_uni",
         "res_uni",
     ],
     inflation_var="ln_prod_article_count",
