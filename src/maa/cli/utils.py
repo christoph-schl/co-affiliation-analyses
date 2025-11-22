@@ -12,16 +12,24 @@ from maa.config.models import input_types
 from maa.config.utils import configure_logging
 from maa.constants.constants import (
     AFFILIATION_LINKS_PREFIX,
+    BAR_PLOT_FILENAME,
+    CO_AFF_ALL_DATASET_NAME,
+    CO_AFF_STABLE_DATASET_NAME,
     GRAVITY_INPUT_DIR,
     GRAVITY_INPUT_PREFIX,
     GRAVITY_INTER_RESULTS_PREFIX,
     GRAVITY_INTRA_RESULTS_PREFIX,
     GRAVITY_OUTPUT_DIR,
     LINK_DIR,
+    PLOTS_OUTPUT_DIR,
+    TIMESERIES_PLOT_INSTITUTION_FILENAME,
+    TIMESERIES_PLOT_ORG_TYPE_FILENAME,
+    VIOLINE_PLOT_FILENAME,
     VOS_DIR,
     VOS_MAP_PREFIX,
     VOS_NETWORK_PREFIX,
 )
+from maa.plot.grid import PlotGrid
 from maa.znib.znib import ZINBModel
 
 _logger = structlog.getLogger(__name__)
@@ -76,9 +84,9 @@ class OutputPaths:
     Generates output file paths for a given suffix and ensures parent dirs exist.
     """
 
-    def __init__(self, root: Path, suffix: str):
-        self.root = root
-        self.suffix = suffix
+    def __init__(self, root: Path, suffix: Optional[str]):
+        self.root: Path = root
+        self.suffix: Optional[str] = suffix
 
     def _path(self, subdir: Path, filename: str) -> Path:
         path = self.root / subdir / filename
@@ -108,6 +116,22 @@ class OutputPaths:
     @property
     def inter_result(self) -> Path:
         return self._path(GRAVITY_OUTPUT_DIR, f"{GRAVITY_INTER_RESULTS_PREFIX}_{self.suffix}.txt")
+
+    @property
+    def violine_plot(self) -> Path:
+        return self._path(PLOTS_OUTPUT_DIR, VIOLINE_PLOT_FILENAME)
+
+    @property
+    def bat_plot(self) -> Path:
+        return self._path(PLOTS_OUTPUT_DIR, BAR_PLOT_FILENAME)
+
+    @property
+    def timeseries_plot_org_type(self) -> Path:
+        return self._path(PLOTS_OUTPUT_DIR, TIMESERIES_PLOT_ORG_TYPE_FILENAME)
+
+    @property
+    def timeseries_plot_institution(self) -> Path:
+        return self._path(PLOTS_OUTPUT_DIR, TIMESERIES_PLOT_INSTITUTION_FILENAME)
 
 
 @dataclass(frozen=True)
@@ -151,27 +175,58 @@ class ZNIBGravityResult(NetworkResult):
         _write_model(self.znib_inter_model, output_paths.inter_result)
 
 
+@dataclass(frozen=True)
+class PlotResult:
+    """Result object for a plotting resuls."""
+
+    violine_plot: PlotGrid
+    bar_plot: PlotGrid
+    timeseries_plot_org_type: PlotGrid
+    timeseries_plot_institution: PlotGrid
+
+    def write(self, output_paths: "OutputPaths") -> None:
+        """Write the components common to all plot grids."""
+        self.violine_plot.save(output_paths.violine_plot)
+        self.bar_plot.save(output_paths.bat_plot)
+        self.timeseries_plot_org_type.save(output_paths.timeseries_plot_org_type)
+        self.timeseries_plot_institution.save(output_paths.timeseries_plot_institution)
+
+
 def iter_year_gaps(stable_gap: int) -> Iterator[YearGapEntry]:
     """Yield configured year-gap variants."""
-    yield YearGapEntry(gap=0, suffix="all")
-    yield YearGapEntry(gap=stable_gap, suffix="stable")
+    yield YearGapEntry(gap=0, suffix=CO_AFF_ALL_DATASET_NAME)
+    yield YearGapEntry(gap=stable_gap, suffix=CO_AFF_STABLE_DATASET_NAME)
+
+
+def _resolve_paths(base: Path, result: Any) -> OutputPaths:
+    suffix = getattr(result, "suffix", None)
+    return OutputPaths(base, suffix)
 
 
 def write_outputs(
-    results: Iterable[Union[NetworkResult, ZNIBGravityResult]], output_path: Path, dry_run: bool
+    results: Union[Iterable[Union[NetworkResult, ZNIBGravityResult]], PlotResult],
+    output_path: Path,
+    dry_run: bool,
 ) -> None:
-    """Write each year-gap result to disk."""
-    for result in results:
+
+    if isinstance(results, PlotResult):
+        results_iter: Iterable[PlotResult | NetworkResult | ZNIBGravityResult] = (results,)
+    else:
+        results_iter = results
+
+    for result in results_iter:
+        suffix = getattr(result, "suffix", None)
+
         if dry_run:
-            _logger.info("dry_run.write", suffix=result.suffix, output=str(output_path))
+            _logger.info("dry_run.write", suffix=suffix, output=str(output_path))
             continue
 
-        paths = OutputPaths(output_path, result.suffix)
+        paths = _resolve_paths(base=output_path, result=result)
 
         try:
             result.write(paths)
-        except Exception as exc:  # noqa intentionally broad
-            _logger.error("write.failed", suffix=result.suffix, error=str(exc))
+        except Exception as exc:  # noqa
+            _logger.error("write.failed", suffix=suffix, error=str(exc))
             raise
-        else:
-            _logger.info("write.success", suffix=result.suffix, output=str(output_path))
+
+        _logger.info("write.success", suffix=suffix, output=str(output_path))

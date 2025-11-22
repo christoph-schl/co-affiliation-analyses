@@ -32,7 +32,16 @@ class LoadedGravityInputs(LoadedNetworkInputs):
     routes: pd.DataFrame
 
 
-input_types = Union[LoadedNetworkInputs, LoadedGravityInputs]
+@dataclass(frozen=True)
+class LoadedPlotInputs(LoadedNetworkInputs):
+    """Inputs required for gravity computation (extends network inputs)."""
+
+    impact: pd.DataFrame
+    min_samples: int
+    max_groups: int
+
+
+input_types = Union[LoadedNetworkInputs, LoadedGravityInputs, LoadedPlotInputs]
 
 
 def _expand_str(s: str) -> str:
@@ -131,4 +140,24 @@ class GravityConfig(NetworkConfig):
         )
 
 
-config_types = Union[NetworkConfig, GravityConfig]
+class PlotConfig(NetworkConfig):
+    impact_file_path: Path = Field(..., description="Parquet with impact data for article records")
+    min_samples: int = Field(..., description="Minimum number of samples to include")
+    max_groups: int = Field(..., description="Maximum number of groups to include")
+
+    def load_inputs(self) -> "LoadedNetworkInputs":
+        articles = read_articles(self.article_file_path)
+        affiliations = read_affiliations(self.affiliation_file_path)
+        impact = pd.read_csv(self.impact_file_path)
+
+        return LoadedPlotInputs(
+            config=self,
+            articles=articles,
+            affiliations=affiliations,
+            impact=impact,
+            min_samples=self.min_samples,
+            max_groups=self.max_groups,
+        )
+
+
+config_types = Union[NetworkConfig, GravityConfig, PlotConfig]

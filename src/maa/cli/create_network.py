@@ -20,12 +20,7 @@ from maa.network.network import AffiliationNetworkProcessor
 _logger = structlog.getLogger(__name__)
 
 
-# ============================================================
-# Core Processing Logic
-# ============================================================
-
-
-def get_network_from_config(
+def get_network_for_year_gaps(
     article_df: Any, affiliation_gdf: Any, net_cfg: NetworkConfig
 ) -> Generator[NetworkResult, None, None]:
     """
@@ -63,11 +58,6 @@ def get_network_from_config(
         yield NetworkResult(suffix=yg.suffix, graph=graph, link_gdf=link_gdf)
 
 
-# ============================================================
-# CLICK CLI ENTRYPOINT
-# ============================================================
-
-
 @click.command(name="create-network", help="Build affiliation networks from configuration.")
 @click.option(
     "--config",
@@ -88,21 +78,20 @@ def get_network_from_config(
 @click.option("--dry-run", is_flag=True, help="Do not write any files.")
 @click.option("--debug", is_flag=True, help="Enable verbose logging.")
 def main(config: Path, stage: str, validate_paths: bool, dry_run: bool, debug: bool) -> None:
-    """CLI entry point for building affiliation networks."""
+    """CLI entry point for creatin plots from affiliaton networks."""
 
     input_data = load_inputs_from_config(
         config=config, stage=stage, validate_paths=validate_paths, debug=debug
     )
-    net_cfg = input_data.config
-    article_df = input_data.articles
-    affiliation_gdf = input_data.affiliations
 
-    _logger.info("network.build.start", output=str(net_cfg.output_path))
-    results = get_network_from_config(
-        article_df=article_df, affiliation_gdf=affiliation_gdf, net_cfg=net_cfg
+    _logger.info("network.build.start", output=str(input_data.config.output_path))
+    results = get_network_for_year_gaps(
+        article_df=input_data.articles,
+        affiliation_gdf=input_data.affiliations,
+        net_cfg=input_data.config,
     )
 
-    write_outputs(results=results, output_path=net_cfg.output_path, dry_run=dry_run)
+    write_outputs(results=results, output_path=input_data.config.output_path, dry_run=dry_run)
 
     _logger.info("network.build.done")
 

@@ -8,3 +8,8 @@ year_gap_stable_links = 2
 [gravity]
 routes_file_path = "data/valhalla/enriched_edges.csv"
 fit_models = true
+
+[plot]
+impact_file_path = "data/impact/impact_data.csv"
+min_samples = 300
+max_groups = 10

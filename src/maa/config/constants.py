@@ -13,4 +13,4 @@ CONFIGURATION_PATH = PROJECT_ROOT / DATA_CONFIG_FOLDER / DATA_CONFIG_FILE
 class ProcessingStage(enum.Enum):
     PREPROCESSING = "network"
     GRAVITY = "gravity"
-    POSTPROCESSING = "postprocessing"
+    PLOT = "plot"

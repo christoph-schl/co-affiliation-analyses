@@ -1,5 +1,6 @@
 from dataclasses import dataclass
-from typing import Any, Mapping, Optional
+from pathlib import Path
+from typing import Any, Mapping, Optional, Union
 
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
@@ -110,6 +111,6 @@ class PlotGrid:
             raise ValueError(f"No plot configuration found for '{plot_name}'")
         return cls.from_config(cfg.figure)
 
-    def save(self, path: str, **kwargs: Any) -> None:
+    def save(self, path: Union[str, Path], **kwargs: Any) -> None:
         """Convenience helper to save the figure."""
         self.fig.savefig(path, bbox_inches="tight", **kwargs)

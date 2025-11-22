@@ -115,6 +115,7 @@ LINK_DIR = Path("network/links")
 VOS_DIR = Path("network/vos")
 GRAVITY_INPUT_DIR = Path("gravity/input")
 GRAVITY_OUTPUT_DIR = Path("gravity/output")
+PLOTS_OUTPUT_DIR = Path("plot/impact")
 
 AFFILIATION_LINKS_PREFIX = "affiliation_links"
 VOS_MAP_PREFIX = "map"
@@ -122,3 +123,10 @@ VOS_NETWORK_PREFIX = "network"
 GRAVITY_INPUT_PREFIX = "model_input"
 GRAVITY_INTRA_RESULTS_PREFIX = "intra_results"
 GRAVITY_INTER_RESULTS_PREFIX = "inter_results"
+VIOLINE_PLOT_FILENAME = "violine.png"
+BAR_PLOT_FILENAME = "bar_plot.png"
+TIMESERIES_PLOT_ORG_TYPE_FILENAME = "timeseries_org_type.png"
+TIMESERIES_PLOT_INSTITUTION_FILENAME = "timeseries_institution.png"
+
+CO_AFF_ALL_DATASET_NAME = "all"
+CO_AFF_STABLE_DATASET_NAME = "stable"
