@@ -29,6 +29,7 @@ from maa.constants.constants import (
     VOS_MAP_PREFIX,
     VOS_NETWORK_PREFIX,
 )
+from maa.network.utils import Edge
 from maa.plot.grid import PlotGrid
 from maa.znib.znib import ZINBModel
 
@@ -139,7 +140,7 @@ class NetworkResult:
     """Result object for a computed network variant."""
 
     suffix: str
-    graph: Any
+    graph: Edge
     link_gdf: gpd.GeoDataFrame
 
     def write(self, output_paths: "OutputPaths") -> None:
