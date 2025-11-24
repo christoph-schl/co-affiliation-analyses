@@ -184,7 +184,7 @@ class ZNIB(AffiliationNetworkProcessor):
 
         if self.enriched_edges is None:
             self.enriched_edges = enrich_edges_with_org_info(
-                edge_gdf=self.edge.gdf, route_df=route_df, org_type_list=org_type_list
+                edge_gdf=self.edge.edge_gdf, route_df=route_df, org_type_list=org_type_list
             )
 
     @get_execution_time

@@ -35,7 +35,7 @@ def test_filter_organization_types(
 ) -> None:
     # create edges
     edge_graph = create_graph_from_links(link_gdf=link_df)
-    edges = edge_graph.gdf
+    edges = edge_graph.edge_gdf
 
     # filter edges
     filtered_edges = filter_organization_types(df=edges, org_types=org_type_filter)
@@ -53,7 +53,7 @@ def test_filter_organization_types(
 def test_get_znib_edges(link_df: pd.DataFrame) -> None:
     # create edges
     edge_graph = create_graph_from_links(link_gdf=link_df)
-    edges = edge_graph.gdf
+    edges = edge_graph.edge_gdf
 
     # create all possible combinations from unique from node to node ids
     znib_edges = get_znib_edges(edge_gdf=edges)
@@ -73,7 +73,7 @@ def test_get_znib_edges(link_df: pd.DataFrame) -> None:
 def test_enrich_edges_with_org_info(link_df: pd.DataFrame, route_df: pd.DataFrame) -> None:
     # create edges
     edge_graph = create_graph_from_links(link_gdf=link_df)
-    edges = edge_graph.gdf
+    edges = edge_graph.edge_gdf
 
     enriched_edges = enrich_edges_with_org_info(edge_gdf=edges, route_df=route_df)
 
@@ -126,7 +126,9 @@ def test_znib_pipline(
     model_data = znib.enrich_edges_with_org_info(route_df=route_df)
 
     # check all possible combinations
-    nodes = znib.edge.gdf[FROM_NODE_COLUMN].tolist() + znib.edge.gdf[TO_NODE_COLUMN].tolist()
+    nodes = (
+        znib.edge.edge_gdf[FROM_NODE_COLUMN].tolist() + znib.edge.edge_gdf[TO_NODE_COLUMN].tolist()
+    )
     pairs = list(itertools.combinations(np.unique(np.asarray(nodes)), 2))
     assert len(model_data) == len(pairs)
 

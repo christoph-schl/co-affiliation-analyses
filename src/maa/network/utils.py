@@ -264,12 +264,12 @@ def compute_edge_strengths(link_gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
 
 
 @dataclass
-class Edge:
+class AffiliationGraph:
     """
     Dataclass contains edges as geopandas GeoDataFrame and as weighted networkx graph
     """
 
-    gdf: gpd.GeoDataFrame
+    edge_gdf: gpd.GeoDataFrame
     graph: Graph
 
 
@@ -277,7 +277,7 @@ class Edge:
 def create_graph_from_links(
     link_gdf: gpd.GeoDataFrame,
     min_weight: int = 0,
-) -> Edge:
+) -> AffiliationGraph:
     """
     Creates an affiliation network graph from a GeoDataFrame of links between nodes (affiliations).
 
@@ -322,7 +322,7 @@ def create_graph_from_links(
     )
 
     edge_gdf = _add_article_count_to_edges(affiliation_graph=affiliation_graph, edge_gdf=edge_gdf)
-    edge_output = Edge(gdf=edge_gdf, graph=affiliation_graph)
+    edge_output = AffiliationGraph(edge_gdf=edge_gdf, graph=affiliation_graph)
 
     return edge_output
 

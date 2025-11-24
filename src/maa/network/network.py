@@ -19,7 +19,7 @@ from maa.constants.constants import (
 from maa.dataframe.models.affiliation import AffiliationSchema
 from maa.dataframe.models.article import ArticleSchema
 from maa.network.utils import (
-    Edge,
+    AffiliationGraph,
     create_affiliation_links,
     create_graph_from_links,
     get_vos_cluster_numbers,
@@ -180,7 +180,7 @@ class AffiliationNetworkProcessor:
     link_gdf: InitVar[Optional[gpd.GeoDataFrame]] = None
 
     _link_gdf: Optional[gpd.GeoDataFrame] = None
-    _edge_graph: Optional[Edge] = None
+    _edge_graph: Optional[AffiliationGraph] = None
     _min_edge_weight: Optional[int] = 0
     _min_year_gap: Optional[int] = 0
     _article_author_df: pd.DataFrame = field(init=False, default=None)
@@ -245,7 +245,7 @@ class AffiliationNetworkProcessor:
         return self._vos_org_type_colors
 
     @property
-    def edge(self) -> Edge:
+    def edge(self) -> AffiliationGraph:
         if self._edge_graph is None:
             raise MissingEdgeGraphError(
                 "Edge graph is not set. "
@@ -254,7 +254,7 @@ class AffiliationNetworkProcessor:
         return self._edge_graph
 
     @edge.setter
-    def edge(self, value: Edge) -> None:
+    def edge(self, value: AffiliationGraph) -> None:
         self._edge_graph = value
 
     @property
@@ -295,7 +295,9 @@ class AffiliationNetworkProcessor:
 
         return self._link_gdf
 
-    def get_affiliation_graph(self, min_edge_weight: Optional[int] = None) -> Optional[Edge]:
+    def get_affiliation_graph(
+        self, min_edge_weight: Optional[int] = None
+    ) -> Optional[AffiliationGraph]:
         """
         Creates an affiliation network graph from a GeoDataFrame of links between nodes
         (affiliations).

@@ -111,7 +111,7 @@ def test_create_graph_from_links(
     expected_article_count_to: List[int],
 ) -> None:
     edge_graph = create_graph_from_links(link_gdf=link_df, min_weight=min_weight)
-    edge_df = edge_graph.gdf
+    edge_df = edge_graph.edge_gdf
     assert len(edge_df) == expected_edge_df_length
     assert edge_df[ARTICLE_COUNT_COLUMN].tolist() == expected_article_count_from
     assert edge_df[f"{ARTICLE_COUNT_COLUMN}_to"].tolist() == expected_article_count_to
@@ -147,7 +147,7 @@ def test_affiliation_network_processor(
     edge_graph = processor.get_affiliation_graph(min_edge_weight=min_weight)
     assert edge_graph is not None
     if edge_graph is not None:
-        edge_df = edge_graph.gdf
+        edge_df = edge_graph.edge_gdf
         assert len(edge_df) == expected_edge_df_length
         assert edge_df[ARTICLE_COUNT_COLUMN].tolist() == expected_article_count_from
         assert edge_df[f"{ARTICLE_COUNT_COLUMN}_to"].tolist() == expected_article_count_to
