@@ -98,21 +98,17 @@ def get_gravity_model_for_year_gaps(
     show_default=True,
     help="Path to config.toml",
 )
-@click.option(
-    "--stage",
-    "-s",
-    default=ProcessingStage.GRAVITY.value,
-    show_default=True,
-    help="Stage group defined in the config file.",
-)
 @click.option("--validate-paths", is_flag=True, help="Validate paths exist before running.")
 @click.option("--dry-run", is_flag=True, help="Do not write any files.")
 @click.option("--debug", is_flag=True, help="Enable verbose logging.")
-def main(config: Path, stage: str, validate_paths: bool, dry_run: bool, debug: bool) -> None:
+def main(config: Path, validate_paths: bool, dry_run: bool, debug: bool) -> None:
     """CLI entry point for creating znib gravity model inputs and fitting the models."""
 
     input_data = load_inputs_from_config(
-        config=config, stage=stage, validate_paths=validate_paths, debug=debug
+        config=config,
+        stage=ProcessingStage.GRAVITY.value,
+        validate_paths=validate_paths,
+        debug=debug,
     )
     gravity_cfg = input_data.config
     article_df = input_data.articles

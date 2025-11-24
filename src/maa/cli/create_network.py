@@ -67,21 +67,17 @@ def get_network_for_year_gaps(
     show_default=True,
     help="Path to config.toml",
 )
-@click.option(
-    "--stage",
-    "-s",
-    default=ProcessingStage.PREPROCESSING.value,
-    show_default=True,
-    help="Stage group defined in the config file.",
-)
 @click.option("--validate-paths", is_flag=True, help="Validate paths exist before running.")
 @click.option("--dry-run", is_flag=True, help="Do not write any files.")
 @click.option("--debug", is_flag=True, help="Enable verbose logging.")
-def main(config: Path, stage: str, validate_paths: bool, dry_run: bool, debug: bool) -> None:
+def main(config: Path, validate_paths: bool, dry_run: bool, debug: bool) -> None:
     """CLI entry point for creatin plots from affiliaton networks."""
 
     input_data = load_inputs_from_config(
-        config=config, stage=stage, validate_paths=validate_paths, debug=debug
+        config=config,
+        stage=ProcessingStage.PREPROCESSING.value,
+        validate_paths=validate_paths,
+        debug=debug,
     )
 
     _logger.info("network.build.start", output=str(input_data.config.output_path))
