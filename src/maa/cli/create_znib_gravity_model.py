@@ -22,7 +22,7 @@ from maa.znib.znib import ZNIB
 _logger = structlog.getLogger(__name__)
 
 
-def get_gravity_input_from_config(
+def get_gravity_model_for_year_gaps(
     article_df: pd.DataFrame,
     affiliation_gdf: gpd.GeoDataFrame,
     routes_df: pd.DataFrame,
@@ -126,7 +126,7 @@ def main(config: Path, stage: str, validate_paths: bool, dry_run: bool, debug: b
     # 🔥type narrowing for mypy:
     assert isinstance(gravity_cfg, GravityConfig)
 
-    results = get_gravity_input_from_config(
+    results = get_gravity_model_for_year_gaps(
         article_df=article_df,
         affiliation_gdf=affiliation_gdf,
         routes_df=routes_df,
