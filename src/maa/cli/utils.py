@@ -206,7 +206,6 @@ def _resolve_paths(base: Path, result: Any) -> OutputPaths:
 def write_outputs(
     results: Union[Iterable[Union[NetworkResult, ZNIBGravityResult]], PlotResult],
     output_path: Path,
-    dry_run: bool,
 ) -> None:
 
     if isinstance(results, PlotResult):
@@ -216,10 +215,6 @@ def write_outputs(
 
     for result in results_iter:
         suffix = getattr(result, "suffix", None)
-
-        if dry_run:
-            _logger.info("dry_run.write", suffix=suffix, output=str(output_path))
-            continue
 
         paths = _resolve_paths(base=output_path, result=result)
 

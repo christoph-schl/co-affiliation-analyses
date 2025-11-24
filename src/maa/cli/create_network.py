@@ -68,18 +68,48 @@ def get_network_for_year_gaps(
     help="Path to config.toml",
 )
 @click.option("--validate-paths", is_flag=True, help="Validate paths exist before running.")
-@click.option("--dry-run", is_flag=True, help="Do not write any files.")
 @click.option("--debug", is_flag=True, help="Enable verbose logging.")
-def main(config: Path, validate_paths: bool, dry_run: bool, debug: bool) -> None:
+def main(config: Path, validate_paths: bool, debug: bool) -> None:
     """CLI entry point for creatin plots from affiliaton networks."""
+    create_networks_from_config(
+        config_path=config, debug=debug, validate_paths=validate_paths, write_outputs_to_file=True
+    )
+
+
+def create_networks_from_config(
+    config_path: Path,
+    debug: bool = False,
+    validate_paths: bool = False,
+    write_outputs_to_file: bool = False,
+) -> Generator[NetworkResult, None, None]:
+    """
+    Build affiliation networks for each configured year-gap variant.
+
+    This function loads input data from the provided configuration file,
+    constructs affiliation networks for each defined year-gap variant
+    (including the full dataset and the stable co-affiliation variant),
+    and optionally writes the results to the configured output directory.
+
+    :param config_path:
+        Path to the configuration file specifying input data locations,
+        processing settings, and output paths.
+    :param debug:
+        Enable verbose logging for troubleshooting or development.
+    :param validate_paths:
+        Validate that input and output paths exist before running.
+    :param write_outputs_to_file:
+        If True, write all generated network artifacts to disk; if False,
+        the networks are generated but not persisted.
+    :returns:
+        None. Results are optionally written to disk based on configuration.
+    """
 
     input_data = load_inputs_from_config(
-        config=config,
+        config=config_path,
         stage=ProcessingStage.PREPROCESSING.value,
         validate_paths=validate_paths,
         debug=debug,
     )
-
     _logger.info("network.build.start", output=str(input_data.config.output_path))
     results = get_network_for_year_gaps(
         article_df=input_data.articles,
@@ -87,9 +117,11 @@ def main(config: Path, validate_paths: bool, dry_run: bool, debug: bool) -> None
         net_cfg=input_data.config,
     )
 
-    write_outputs(results=results, output_path=input_data.config.output_path, dry_run=dry_run)
-
+    if write_outputs_to_file:
+        write_outputs(results=results, output_path=input_data.config.output_path)
     _logger.info("network.build.done")
+
+    return results
 
 
 if __name__ == "__main__":

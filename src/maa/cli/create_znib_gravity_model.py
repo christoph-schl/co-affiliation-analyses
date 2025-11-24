@@ -99,13 +99,50 @@ def get_gravity_model_for_year_gaps(
     help="Path to config.toml",
 )
 @click.option("--validate-paths", is_flag=True, help="Validate paths exist before running.")
-@click.option("--dry-run", is_flag=True, help="Do not write any files.")
 @click.option("--debug", is_flag=True, help="Enable verbose logging.")
-def main(config: Path, validate_paths: bool, dry_run: bool, debug: bool) -> None:
+def main(config: Path, validate_paths: bool, debug: bool) -> None:
     """CLI entry point for creating znib gravity model inputs and fitting the models."""
 
+    create_znib_gravity_models_from_config(
+        config_path=config, debug=debug, validate_paths=validate_paths, write_outputs_to_file=True
+    )
+
+
+def create_znib_gravity_models_from_config(
+    config_path: Path,
+    debug: bool = False,
+    validate_paths: bool = False,
+    write_outputs_to_file: bool = False,
+) -> Generator[ZNIBGravityResult, None, None]:
+    """
+    Build ZNIB gravity model inputs for each configured year-gap variant.
+
+    This function loads all required data from the given configuration file,
+    constructs gravity-model inputs for each year-gap variant (including the
+    complete dataset and the stable co-affiliation variant), and optionally
+    writes the generated outputs to the configured output directory.
+
+    :param config_path:
+        Path to the configuration file specifying input data sources,
+        processing parameters, and output paths.
+    :param debug:
+        Enable verbose logging for debugging or development purposes.
+    :param validate_paths:
+        Validate the existence of all required input and output paths
+        before running the pipeline.
+    :param write_outputs_to_file:
+        If True, write the generated gravity-model artifacts to disk.
+        If False, results are produced but not persisted.
+    :Yields:
+        ZNIBGravityResult:
+            For each year-gap variant, an object containing:
+                • suffix: the variant name ("all", "stable", ...)
+                • data: the prepared gravity-model inputs
+                • metadata: additional information required for modeling
+    """
+
     input_data = load_inputs_from_config(
-        config=config,
+        config=config_path,
         stage=ProcessingStage.GRAVITY.value,
         validate_paths=validate_paths,
         debug=debug,
@@ -113,15 +150,12 @@ def main(config: Path, validate_paths: bool, dry_run: bool, debug: bool) -> None
     gravity_cfg = input_data.config
     article_df = input_data.articles
     affiliation_gdf = input_data.affiliations
-
     if isinstance(input_data, LoadedGravityInputs):
         routes_df = input_data.routes
     else:
         routes_df = get_empty_routes_df()
-
     # 🔥type narrowing for mypy:
     assert isinstance(gravity_cfg, GravityConfig)
-
     results = get_gravity_model_for_year_gaps(
         article_df=article_df,
         affiliation_gdf=affiliation_gdf,
@@ -129,7 +163,10 @@ def main(config: Path, validate_paths: bool, dry_run: bool, debug: bool) -> None
         gravity_cfg=gravity_cfg,
     )
 
-    write_outputs(results=results, output_path=gravity_cfg.output_path, dry_run=dry_run)
+    if write_outputs_to_file:
+        write_outputs(results=results, output_path=gravity_cfg.output_path)
+
+    return results
 
 
 if __name__ == "__main__":

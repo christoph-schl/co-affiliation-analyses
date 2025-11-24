@@ -45,9 +45,8 @@ _logger = structlog.getLogger(__name__)
     help="Stage group defined in the config file.",
 )
 @click.option("--validate-paths", is_flag=True, help="Validate paths exist before running.")
-@click.option("--dry-run", is_flag=True, help="Do not write any files.")
 @click.option("--debug", is_flag=True, help="Enable verbose logging.")
-def main(config: Path, stage: str, validate_paths: bool, dry_run: bool, debug: bool) -> None:
+def main(config: Path, stage: str, validate_paths: bool, debug: bool) -> None:
     """CLI entry point for building affiliation networks."""
 
     input_data = load_inputs_from_config(
@@ -74,7 +73,7 @@ def main(config: Path, stage: str, validate_paths: bool, dry_run: bool, debug: b
     )
     _logger.info("plot.build.done")
 
-    write_outputs(results=plot_results, output_path=input_data.config.output_path, dry_run=dry_run)
+    write_outputs(results=plot_results, output_path=input_data.config.output_path)
 
 
 def get_plots_from_networks(
