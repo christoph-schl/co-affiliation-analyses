@@ -32,7 +32,8 @@ dependencies = [
 
 [project.scripts]
 create-network = "maa.cli.create_network:main"
-create-znib-gravity-input = "maa.cli.create_znib_gravity_input:main"
+create-znib-gravity-model = "maa.cli.create_znib_gravity_model:main"
+create-plots = "maa.cli.create_plots:main"
 
 [tool.poetry]
 packages = [
