@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Generator
 
 import click
 import pandas as pd
@@ -11,7 +10,7 @@ from maa.cli.create_network import get_network_for_year_gaps
 from maa.config.constants import CONFIGURATION_PATH, ProcessingStage
 from maa.config.loader import load_inputs_from_config
 from maa.config.models.input import LoadedPlotInputs, PlotConfig
-from maa.config.models.output import NetworkResult, PlotResult, write_outputs
+from maa.config.models.output import CoAffiliationNetworks, PlotResult, write_outputs
 from maa.constants.constants import (
     CO_AFF_ALL_DATASET_NAME,
     CO_AFF_STABLE_DATASET_NAME,
@@ -73,7 +72,7 @@ def main(config: Path, stage: str, validate_paths: bool, debug: bool) -> None:
 
 
 def get_plots_from_networks(
-    networks: Generator[NetworkResult, None, None], impact_df: pd.DataFrame, plot_cfg: PlotConfig
+    networks: CoAffiliationNetworks, impact_df: pd.DataFrame, plot_cfg: PlotConfig
 ) -> PlotResult:
     """
      Generate all plots derived from a collection of network analysis results.
@@ -99,10 +98,9 @@ def get_plots_from_networks(
         by institution.
     """
 
-    link_map = {result.suffix: result.link_gdf for result in networks}
     plot = ImpactPlot(
-        link_gdf=link_map[CO_AFF_ALL_DATASET_NAME],
-        filtered_link_gdf=link_map[CO_AFF_STABLE_DATASET_NAME],
+        link_gdf=getattr(networks, CO_AFF_ALL_DATASET_NAME).link_gdf,
+        filtered_link_gdf=getattr(networks, CO_AFF_STABLE_DATASET_NAME).link_gdf,
         impact_df=impact_df,
         allowed_org_types=ORG_TYPE_FILTER_LIST,
     )
