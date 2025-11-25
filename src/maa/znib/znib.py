@@ -230,7 +230,8 @@ def create_znib_gravity_models_from_config(
     write_outputs_to_file: bool = False,
 ) -> GravityResultDatasets:
     """
-    Build ZNIB gravity model inputs for each configured year-gap variant.
+    Build ZNIB gravity model inputs for each configured year-gap variant and fits models if
+    specified in the configuration file.
 
     This function loads all required data from the given configuration file,
     constructs gravity-model inputs for each year-gap variant (including the
