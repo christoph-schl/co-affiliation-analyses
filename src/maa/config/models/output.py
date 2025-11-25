@@ -125,8 +125,8 @@ class CoAffiliationNetworks:
     @classmethod
     def from_dict(cls, data: Dict[str, NetworkResult]) -> "CoAffiliationNetworks":
         return cls(
-            all=data["all"],
-            stable=data["stable"],
+            all=data[CO_AFF_ALL_DATASET_NAME],
+            stable=data[CO_AFF_STABLE_DATASET_NAME],
         )
 
 
@@ -154,6 +154,25 @@ class ZNIBGravityResult(NetworkResult):
 
         _write_model(self.znib_intra_model, output_paths.intra_result)
         _write_model(self.znib_inter_model, output_paths.inter_result)
+
+
+@dataclass(frozen=True)
+class GravityResultDatasets:
+    """
+    Container for gravity model results based on:
+    - `all`:     unfiltered co-affiliations
+    - `stable`:  filtered (stable) co-affiliations
+    """
+
+    all: ZNIBGravityResult
+    stable: ZNIBGravityResult
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, ZNIBGravityResult]) -> "GravityResultDatasets":
+        return cls(
+            all=data[CO_AFF_ALL_DATASET_NAME],
+            stable=data[CO_AFF_STABLE_DATASET_NAME],
+        )
 
 
 @dataclass(frozen=True)
@@ -185,7 +204,7 @@ def _resolve_paths(base: Path, result: Any) -> OutputPaths:
 
 
 def write_outputs(
-    results: Union[Union[CoAffiliationNetworks, ZNIBGravityResult], PlotResult],
+    results: Union[Union[CoAffiliationNetworks, GravityResultDatasets], PlotResult],
     output_path: Path,
 ) -> None:
 
