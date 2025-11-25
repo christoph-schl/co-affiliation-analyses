@@ -12,9 +12,8 @@ from .models.input import (
     config_types,
     input_types,
 )
-from .models.output import _logger
 from .registry import MODEL_REGISTRY
-from .utils import configure_logging
+from .utils import LogLevel, configure_logging
 
 try:
     import tomllib as _tomllib
@@ -39,6 +38,11 @@ except ImportError:
         :return: Parsed TOML content as a dictionary.
         """
         return _toml.load(path)
+
+
+import structlog
+
+_logger = structlog.getLogger(__name__)
 
 
 def _get_group(raw: Dict[str, Any], group: str) -> Dict[str, Any]:
@@ -170,7 +174,7 @@ def load_inputs_from_config(
         routes (if applicable), and references to the loaded configuration.
     """
 
-    configure_logging(debug=debug)
+    configure_logging(LogLevel.DEBUG if debug else LogLevel.INFO)
 
     cfg = load_toml_group_to_model(
         toml_path=config,

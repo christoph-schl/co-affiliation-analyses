@@ -21,7 +21,7 @@ from maa.constants.constants import (
 )
 from maa.utils.wrappers import df_split
 
-_logger = structlog.getLogger()
+_logger = structlog.getLogger(__name__)
 _TEMPORARY_GEOMETRY_COLUMN = "temp_geom"
 _COORDS_COLUMN = "coords"
 _SOURCE_COLUMN = "source"

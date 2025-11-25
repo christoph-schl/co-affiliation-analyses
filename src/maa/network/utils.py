@@ -1,4 +1,5 @@
-from dataclasses import dataclass
+from __future__ import annotations
+
 from itertools import combinations
 from typing import List, Optional, Tuple
 
@@ -28,11 +29,12 @@ from maa.constants.constants import (
     TO_NODE_COLUMN,
     WGS84_EPSG,
 )
+from maa.network.container import AffiliationGraph
 from maa.utils.geo_tools import create_line_geometries
 from maa.utils.utils import filter_links_by_country
 from maa.utils.wrappers import get_execution_time, parallelize_dataframe
 
-_logger = structlog.getLogger()
+_logger = structlog.getLogger(__name__)
 
 _EDGE_COLUMN = "edge"
 _NO_DATA_STRING = "nodata"
@@ -261,16 +263,6 @@ def compute_edge_strengths(link_gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     ).transform("size")
     edge_gdf = edge_gdf.drop_duplicates(subset=[FROM_NODE_COLUMN, TO_NODE_COLUMN])
     return edge_gdf
-
-
-@dataclass
-class AffiliationGraph:
-    """
-    Dataclass contains edges as geopandas GeoDataFrame and as weighted networkx graph
-    """
-
-    edge_gdf: gpd.GeoDataFrame
-    graph: Graph
 
 
 @get_execution_time

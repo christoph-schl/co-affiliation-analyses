@@ -17,7 +17,7 @@ from maa.constants.constants import (
     DEFAULT_MAX_WORKERS_PARALLEL_PROCESSING,
 )
 
-_logger = structlog.getLogger()
+_logger = structlog.getLogger(__name__)
 
 R = TypeVar("R")
 _DF_INDEX_COLUMN_NAME = "_parallel_gdf_index"

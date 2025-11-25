@@ -1,4 +1,5 @@
 import logging
+from enum import Enum
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -10,24 +11,40 @@ from maa.config.constants import DEFAULT_CONFIG_CONTENT
 _logger = structlog.getLogger(__name__)
 
 
-def configure_logging(debug: bool) -> None:
-    """
-    Configure structlog for CLI usage.
+class LogLevel(Enum):
+    DEBUG = logging.DEBUG
+    INFO = logging.INFO
+    WARNING = logging.WARNING
+    ERROR = logging.ERROR
+    CRITICAL = logging.CRITICAL
 
-    This configures a console-friendly renderer, timestamper and exception helpers,
-    and sets the minimum log level according to `debug`.
+
+def configure_logging(level: LogLevel = LogLevel.INFO) -> None:
     """
+    Configure structlog for CLI or Jupyter usage.
+    Idempotent: calling multiple times always results in the same configuration.
+    """
+    # Reset structlog completely
+    structlog.reset_defaults()
+
+    # Clear all handlers on the root logger
+    root_logger = logging.getLogger()
+    for handler in list(root_logger.handlers):
+        root_logger.removeHandler(handler)
+
+    # Reconfigure standard logging
+    logging.basicConfig(
+        level=level.value,
+        force=True,  # ensures old handlers are dropped across all loggers
+    )
+
+    # Reconfigure structlog
     structlog.configure(
         processors=[
             structlog.processors.TimeStamper(fmt="iso"),
-            structlog.dev.set_exc_info,
-            structlog.processors.StackInfoRenderer(),
-            structlog.processors.format_exc_info,
             structlog.dev.ConsoleRenderer(),
         ],
-        wrapper_class=structlog.make_filtering_bound_logger(
-            min_level=logging.DEBUG if debug else logging.INFO
-        ),
+        wrapper_class=structlog.make_filtering_bound_logger(level.value),
         cache_logger_on_first_use=True,
     )
 

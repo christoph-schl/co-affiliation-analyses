@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Iterator, Optional, Union
@@ -26,9 +28,9 @@ from maa.constants.constants import (
     VOS_MAP_PREFIX,
     VOS_NETWORK_PREFIX,
 )
-from maa.network.utils import AffiliationGraph
+from maa.network.container import AffiliationGraph
 from maa.plot.grid import PlotGrid
-from maa.znib.znib import ZINBModel
+from maa.znib.model import ZINBModel
 
 _logger = structlog.getLogger(__name__)
 
