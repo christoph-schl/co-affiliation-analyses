@@ -5,8 +5,16 @@ from typing import Any, Dict, Type, Union, cast
 
 from pydantic import ValidationError
 
-from .models import BaseConfig, GravityConfig, NetworkConfig, config_types
+from .models.input import (
+    BaseConfig,
+    GravityConfig,
+    NetworkConfig,
+    config_types,
+    input_types,
+)
+from .models.output import _logger
 from .registry import MODEL_REGISTRY
+from .utils import configure_logging
 
 try:
     import tomllib as _tomllib
@@ -136,3 +144,39 @@ def load_toml_group_to_model(
     assert isinstance(instance, (NetworkConfig, GravityConfig))
 
     return instance
+
+
+def load_inputs_from_config(
+    config: Path,
+    stage: str,
+    validate_paths: bool,
+    debug: bool,
+) -> input_types:
+    """
+    Load all required inputs for a given stage using the provided configuration file.
+
+    :param config:
+        Path to the configuration file (YAML/TOML) containing the pipeline settings.
+    :param stage:
+        Name of the stage-group to load configuration for. Determines which sections
+        of the config file are activated.
+    :param validate_paths:
+        Whether to verify that all configured file paths exist on disk. If True, an
+        error will be raised for missing paths.
+    :param debug:
+        Enables verbose logging output when True.
+    :return:
+        A fully populated LoadedInputs object containing articles, affiliations,
+        routes (if applicable), and references to the loaded configuration.
+    """
+
+    configure_logging(debug=debug)
+
+    cfg = load_toml_group_to_model(
+        toml_path=config,
+        group=stage,
+        validate_paths_exist=validate_paths,
+    )
+
+    _logger.info("config.loaded", config=str(config), stage=stage)
+    return cfg.load_inputs()

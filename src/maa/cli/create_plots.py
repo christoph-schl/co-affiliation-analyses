@@ -8,14 +8,10 @@ import pandas as pd
 import structlog
 
 from maa.cli.create_network import get_network_for_year_gaps
-from maa.cli.utils import (
-    NetworkResult,
-    PlotResult,
-    load_inputs_from_config,
-    write_outputs,
-)
 from maa.config.constants import CONFIGURATION_PATH, ProcessingStage
-from maa.config.models import LoadedPlotInputs, PlotConfig
+from maa.config.loader import load_inputs_from_config
+from maa.config.models.input import LoadedPlotInputs, PlotConfig
+from maa.config.models.output import NetworkResult, PlotResult, write_outputs
 from maa.constants.constants import (
     CO_AFF_ALL_DATASET_NAME,
     CO_AFF_STABLE_DATASET_NAME,

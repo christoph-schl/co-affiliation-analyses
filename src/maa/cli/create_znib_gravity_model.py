@@ -6,14 +6,10 @@ import geopandas as gpd
 import pandas as pd
 import structlog
 
-from maa.cli.create_network import write_outputs
-from maa.cli.utils import (
-    ZNIBGravityResult,
-    iter_year_gaps,
-    load_inputs_from_config,
-)
 from maa.config.constants import CONFIGURATION_PATH, ProcessingStage
-from maa.config.models import GravityConfig, LoadedGravityInputs
+from maa.config.loader import load_inputs_from_config
+from maa.config.models.input import GravityConfig, LoadedGravityInputs
+from maa.config.models.output import ZNIBGravityResult, iter_year_gaps, write_outputs
 from maa.constants.constants import NETWORK_COUNTRY, ORG_TYPE_FILTER_LIST
 from maa.dataframe.models.route import get_empty_routes_df
 from maa.znib.configuration import config_inter_proximity, config_intra_proximity

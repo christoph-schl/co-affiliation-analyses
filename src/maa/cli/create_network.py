@@ -1,19 +1,20 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Generator
+from typing import Any, Dict
 
 import click
 import structlog
 
-from maa.cli.utils import (
+from maa.config.constants import CONFIGURATION_PATH, ProcessingStage
+from maa.config.loader import load_inputs_from_config
+from maa.config.models.input import NetworkConfig
+from maa.config.models.output import (
+    CoAffiliationNetworks,
     NetworkResult,
     iter_year_gaps,
-    load_inputs_from_config,
     write_outputs,
 )
-from maa.config.constants import CONFIGURATION_PATH, ProcessingStage
-from maa.config.models import NetworkConfig
 from maa.constants.constants import NETWORK_COUNTRY
 from maa.network.network import AffiliationNetworkProcessor
 
@@ -22,7 +23,7 @@ _logger = structlog.getLogger(__name__)
 
 def get_network_for_year_gaps(
     article_df: Any, affiliation_gdf: Any, net_cfg: NetworkConfig
-) -> Generator[NetworkResult, None, None]:
+) -> CoAffiliationNetworks:
     """
     Build affiliation networks for each configured year-gap variant.
 
@@ -37,12 +38,10 @@ def get_network_for_year_gaps(
         GeoDataFrame containing affiliation information.
     :param net_cfg:
         NetworkConfig object defining year-gap parameters and paths.
-    :Yields:
+    :return:
         YearGapResult:
-            An object containing:
-                • suffix: the variant name ("all", "stable", ...)
-                • graph: the constructed affiliation graph
-                • link_gdf: the GeoDataFrame of computed affiliation links
+            An object containing network results for unfiltered `all` co-affiliations and
+            filtered `stable` co-affiliations.
     """
 
     processor = AffiliationNetworkProcessor(
@@ -51,11 +50,15 @@ def get_network_for_year_gaps(
         country_filter=NETWORK_COUNTRY,
     )
 
+    network_dict: Dict[str, NetworkResult] = {}
     for yg in iter_year_gaps(net_cfg.year_gap_stable_links):
         _logger.info("processing.year_gap", gap=yg.gap, suffix=yg.suffix)
         link_gdf = processor.get_affiliation_links(min_year_gap=yg.gap)
         graph = processor.get_affiliation_graph()
-        yield NetworkResult(suffix=yg.suffix, graph=graph, link_gdf=link_gdf)
+        network_dict[yg.suffix] = NetworkResult(suffix=yg.suffix, graph=graph, link_gdf=link_gdf)
+
+    network_data = CoAffiliationNetworks.from_dict(data=network_dict)
+    return network_data
 
 
 @click.command(name="create-network", help="Build affiliation networks from configuration.")
@@ -81,7 +84,7 @@ def create_networks_from_config(
     debug: bool = False,
     validate_paths: bool = False,
     write_outputs_to_file: bool = False,
-) -> Generator[NetworkResult, None, None]:
+) -> CoAffiliationNetworks:
     """
     Build affiliation networks for each configured year-gap variant.
 

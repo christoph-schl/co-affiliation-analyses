@@ -295,9 +295,7 @@ class AffiliationNetworkProcessor:
 
         return self._link_gdf
 
-    def get_affiliation_graph(
-        self, min_edge_weight: Optional[int] = None
-    ) -> Optional[AffiliationGraph]:
+    def get_affiliation_graph(self, min_edge_weight: Optional[int] = None) -> AffiliationGraph:
         """
         Creates an affiliation network graph from a GeoDataFrame of links between nodes
         (affiliations).
@@ -317,6 +315,7 @@ class AffiliationNetworkProcessor:
         """
 
         self._create_affiliation_graph(min_edge_weight=min_edge_weight)
+        assert self._edge_graph is not None
         return self._edge_graph
 
     def _create_affiliation_links(self, min_year_gap: Optional[int] = None) -> None:

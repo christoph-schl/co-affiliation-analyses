@@ -1,15 +1,12 @@
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Iterable, Iterator, Optional, Union
+from typing import Any, Dict, Iterator, Optional, Union
 
 import geopandas as gpd
 import nx2vos
 import pandas as pd
 import structlog
 
-from maa.config import load_config_for_stage
-from maa.config.models import input_types
-from maa.config.utils import configure_logging
 from maa.constants.constants import (
     AFFILIATION_LINKS_PREFIX,
     BAR_PLOT_FILENAME,
@@ -34,42 +31,6 @@ from maa.plot.grid import PlotGrid
 from maa.znib.znib import ZINBModel
 
 _logger = structlog.getLogger(__name__)
-
-
-def load_inputs_from_config(
-    config: Path,
-    stage: str,
-    validate_paths: bool,
-    debug: bool,
-) -> input_types:
-    """
-    Load all required inputs for a given stage using the provided configuration file.
-
-    :param config:
-        Path to the configuration file (YAML/TOML) containing the pipeline settings.
-    :param stage:
-        Name of the stage-group to load configuration for. Determines which sections
-        of the config file are activated.
-    :param validate_paths:
-        Whether to verify that all configured file paths exist on disk. If True, an
-        error will be raised for missing paths.
-    :param debug:
-        Enables verbose logging output when True.
-    :return:
-        A fully populated LoadedInputs object containing articles, affiliations,
-        routes (if applicable), and references to the loaded configuration.
-    """
-
-    configure_logging(debug=debug)
-
-    cfg = load_config_for_stage(
-        config_file=config,
-        stage_group=stage,
-        validate_paths_exist=validate_paths,
-    )
-
-    _logger.info("config.loaded", config=str(config), stage=stage)
-    return cfg.load_inputs()
 
 
 @dataclass(frozen=True)
@@ -150,6 +111,25 @@ class NetworkResult:
         nx2vos.write_vos_network(G=self.graph.graph, fname=output_paths.network)
 
 
+@dataclass(frozen=True)
+class CoAffiliationNetworks:
+    """
+    Contains co-affiliation networks based on:
+    - `all`:     unfiltered co-affiliations
+    - `stable`:  filtered (stable) co-affiliations
+    """
+
+    all: NetworkResult
+    stable: NetworkResult
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, NetworkResult]) -> "CoAffiliationNetworks":
+        return cls(
+            all=data["all"],
+            stable=data["stable"],
+        )
+
+
 def _write_model(model: Optional[ZINBModel], path: Path) -> None:
     if model is None:
         return
@@ -205,14 +185,18 @@ def _resolve_paths(base: Path, result: Any) -> OutputPaths:
 
 
 def write_outputs(
-    results: Union[Iterable[Union[NetworkResult, ZNIBGravityResult]], PlotResult],
+    results: Union[Union[CoAffiliationNetworks, ZNIBGravityResult], PlotResult],
     output_path: Path,
 ) -> None:
 
+    # normalize input into an iterable of result objects
     if isinstance(results, PlotResult):
-        results_iter: Iterable[PlotResult | NetworkResult | ZNIBGravityResult] = (results,)
+        results_iter = [results]
     else:
-        results_iter = results
+        results_iter = [
+            getattr(results, CO_AFF_ALL_DATASET_NAME),
+            getattr(results, CO_AFF_STABLE_DATASET_NAME),
+        ]
 
     for result in results_iter:
         suffix = getattr(result, "suffix", None)
@@ -225,4 +209,4 @@ def write_outputs(
             _logger.error("write.failed", suffix=suffix, error=str(exc))
             raise
 
-        _logger.info("write.success", suffix=suffix, output=str(output_path))
+    _logger.info("write.success", output=str(output_path))
