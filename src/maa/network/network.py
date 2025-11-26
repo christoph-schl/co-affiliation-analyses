@@ -356,14 +356,13 @@ class AffiliationNetworkProcessor:
         # generate links between affiliations if not cached
         self._create_affiliation_links()
 
-        if self._edge_graph is None:
-            self._edge_graph = create_graph_from_links(
-                link_gdf=self._link_gdf, min_weight=self.min_edge_weight
-            )
+        self._edge_graph = create_graph_from_links(
+            link_gdf=self._link_gdf, min_weight=self.min_edge_weight
+        )
 
-            self._add_org_type_to_graph_and_relabel_nodes()
+        self._add_org_type_to_graph_and_relabel_nodes()
 
-            self.edge = self._edge_graph
+        self.edge = self._edge_graph
 
     def _reclassify_link_org_types(self) -> None:
         self.link.loc[self.link[ORGANISATION_TYPE_COLUMN].isnull(), ORGANISATION_TYPE_COLUMN] = (
