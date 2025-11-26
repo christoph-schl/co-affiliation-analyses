@@ -221,8 +221,12 @@ def create_affiliation_links(
     return link_gdf
 
 
-def _create_graph_from_edges(
-    edge_gdf: gpd.GeoDataFrame, from_node_column: str, to_node_column: str, weight_column: str
+def create_graph_from_edges(
+    edge_gdf: gpd.GeoDataFrame,
+    from_node_column: str,
+    to_node_column: str,
+    weight_column: str,
+    min_weight: Optional[int] = None,
 ) -> Graph:
     """
     Create a weighted NetworkX graph from an edge GeoDataFrame.
@@ -230,8 +234,12 @@ def _create_graph_from_edges(
     :param from_node_column: Column name for the source node.
     :param to_node_column: Column name for the target node.
     :param weight_column: Column name for the edge weight.
+    :param min_weight: Minimum edge weight.
     :return: A NetworkX graph with weighted edges.
     """
+
+    if min_weight is not None:
+        edge_gdf = edge_gdf[edge_gdf[weight_column] >= min_weight].reset_index(drop=True)
 
     G = nx.Graph()
 
@@ -306,7 +314,7 @@ def create_graph_from_links(
     edge_gdf[from_col] = edge_gdf[from_col].fillna(_NO_DATA_STRING)
     edge_gdf[to_col] = edge_gdf[to_col].fillna(_NO_DATA_STRING)
 
-    affiliation_graph = _create_graph_from_edges(
+    affiliation_graph = create_graph_from_edges(
         edge_gdf=edge_gdf,
         from_node_column=FROM_NODE_COLUMN,
         to_node_column=TO_NODE_COLUMN,
