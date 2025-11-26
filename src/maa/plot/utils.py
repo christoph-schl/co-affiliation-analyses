@@ -20,6 +20,7 @@ from maa.constants.constants import (
     PREFERRED_AFFILIATION_NAME_COLUMN,
 )
 from maa.impact.utils import AffiliationMwpr, AffiliationType
+from maa.plot.constants import AFFILIATION_NAME_ALIASES
 
 _N_ROWS = 2
 _N_COLS = 2
@@ -592,3 +593,18 @@ def plot_time_series(
         ax.legend_.remove()
 
     return fig, ax
+
+
+def apply_affiliation_aliases(df: pd.DataFrame, column: str) -> None:
+    """
+    Replace affiliation names in a DataFrame column using predefined alias mappings.
+
+    This function modifies the DataFrame *in place*. For every value in the
+    specified column, it checks whether the value exists in the
+    `AFFILIATION_NAME_ALIASES` dictionary. If so, it replaces it with the
+    corresponding alias; otherwise, it keeps the original value.
+
+    :param df: The DataFrame whose column will be updated.
+    :param column: Name of the column in `df` containing names to normalize.
+    """
+    df[column] = df[column].apply(lambda x: AFFILIATION_NAME_ALIASES.get(x, x))

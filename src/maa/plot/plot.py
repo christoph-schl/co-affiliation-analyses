@@ -32,10 +32,10 @@ from maa.impact.utils import (
 )
 from maa.network.network import get_network_for_year_gaps
 from maa.plot.configuration import PLOT_CONFIGS
-from maa.plot.constants import AFFILIATION_NAME_ALIASES
 from maa.plot.grid import PlotGrid
 from maa.plot.utils import (
     add_text_labels_to_bars,
+    apply_affiliation_aliases,
     plot_bar,
     plot_time_series,
     plot_violine,
@@ -134,9 +134,7 @@ class ImpactPlot(Impact):
 
         # apply affiliation aliases
         for df in [self._node_df, self._filtered_node_df]:
-            df[PREFERRED_AFFILIATION_NAME_COLUMN] = df[PREFERRED_AFFILIATION_NAME_COLUMN].apply(
-                lambda x: AFFILIATION_NAME_ALIASES.get(x, x)
-            )
+            apply_affiliation_aliases(df=df, column=PREFERRED_AFFILIATION_NAME_COLUMN)
 
     @property
     def filtered_node_df(self) -> Optional[pd.DataFrame]:
