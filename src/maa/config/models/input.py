@@ -30,6 +30,7 @@ class LoadedGravityInputs(LoadedNetworkInputs):
     """Inputs required for gravity computation (extends network inputs)."""
 
     routes: pd.DataFrame
+    fit_models: bool
 
 
 @dataclass(frozen=True)
@@ -41,7 +42,15 @@ class LoadedPlotInputs(LoadedNetworkInputs):
     max_groups: int
 
 
-input_types = Union[LoadedNetworkInputs, LoadedGravityInputs, LoadedPlotInputs]
+@dataclass(frozen=True)
+class LoadedRoutingInputs(LoadedNetworkInputs):
+    """Inputs required for gravity computation (extends network inputs)."""
+
+    output_file_path_routes: Path
+    valhalla_base_url: str
+
+
+input_types = Union[LoadedNetworkInputs, LoadedGravityInputs, LoadedPlotInputs, LoadedRoutingInputs]
 
 
 def _expand_str(s: str) -> str:
@@ -137,6 +146,26 @@ class GravityConfig(NetworkConfig):
             articles=base.articles,
             affiliations=base.affiliations,
             routes=routes,
+            fit_models=self.fit_models,
+        )
+
+
+class RoutingConfig(NetworkConfig):
+    output_file_path_routes: Path = Field(
+        ..., description="Output file path for CSV with travel time information"
+    )
+    valhalla_base_url: str = Field(..., description="The base URL for the Valhalla routing engine.")
+
+    def load_inputs(self) -> "LoadedRoutingInputs":
+        # Load the inherited inputs first
+        base = super().load_inputs()
+
+        return LoadedRoutingInputs(
+            config=self,
+            articles=base.articles,
+            affiliations=base.affiliations,
+            output_file_path_routes=self.output_file_path_routes,
+            valhalla_base_url=self.valhalla_base_url,
         )
 
 
@@ -160,4 +189,4 @@ class PlotConfig(NetworkConfig):
         )
 
 
-config_types = Union[NetworkConfig, GravityConfig, PlotConfig]
+config_types = Union[NetworkConfig, GravityConfig, PlotConfig, RoutingConfig]

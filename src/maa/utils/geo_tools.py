@@ -177,7 +177,9 @@ class ValhallaProfile(str, Enum):
 
 
 def add_routes_to_edges(
-    edge_df: pd.DataFrame, profile: str = ValhallaProfile.AUTO.value
+    edge_df: pd.DataFrame,
+    profile: str = ValhallaProfile.AUTO.value,
+    valhalla_base_url: str = DEFAULT_VALHALLA_BASE_URL,
 ) -> pd.DataFrame:
     """
     Enriches edges with routing metrics (distance and duration) using Valhalla matrix API.
@@ -189,6 +191,8 @@ def add_routes_to_edges(
         functions `_get_nodes_from_edges` and `_add_node_index_to_edges`.
     :param profile:
         Valhalla profile (e.g. ValhallaProfile.AUTO.value).
+    :param valhalla_base_url:
+        The base URL of the Valhalla routing engine.
     :return:
         Copy of edges with `distance_m` and `duration_s` filled.
     """
@@ -199,7 +203,7 @@ def add_routes_to_edges(
     )
 
     # initialize Valhalla client
-    client = Valhalla(base_url=DEFAULT_VALHALLA_BASE_URL)
+    client = Valhalla(base_url=valhalla_base_url)
 
     edge_df_list = []
     for edge_subset in edge_subsets:

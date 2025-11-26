@@ -27,7 +27,6 @@ def main() -> None:
     # Execute workflow
     create_znib_gravity_models_from_config(
         config_path=args.config,
-        debug=args.debug,
         validate_paths=args.validate_paths,
         write_outputs_to_file=True,
     )

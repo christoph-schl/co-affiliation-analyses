@@ -4,6 +4,8 @@ import enum
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
+from maa.constants.constants import DEFAULT_VALHALLA_BASE_URL
+
 DATA_CONFIG_FOLDER = "config"
 DATA_CONFIG_FILE = "config.toml"
 
@@ -47,10 +49,17 @@ class PlotDefaults:
     max_groups: int = DEFAULT_MAX_GROUP_SIZE
 
 
+@dataclass(frozen=True)
+class RoutingDefaults:
+    output_file_path_routes: Path = DEFAULT_ROUTES_FILE
+    valhalla_base_url: str = DEFAULT_VALHALLA_BASE_URL
+
+
 DEFAULT_CONFIG_CONTENT = {
     "network": asdict(NetworkDefaults()),
     "gravity": asdict(GravityDefaults()),
     "plot": asdict(PlotDefaults()),
+    "routing": asdict(RoutingDefaults()),
 }
 
 
@@ -58,3 +67,4 @@ class ProcessingStage(enum.Enum):
     PREPROCESSING = "network"
     GRAVITY = "gravity"
     PLOT = "plot"
+    ROUTING = "routing"

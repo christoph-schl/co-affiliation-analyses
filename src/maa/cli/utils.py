@@ -49,6 +49,8 @@ def parse_and_configure(parser: argparse.ArgumentParser) -> argparse.Namespace:
     args = parser.parse_args()
 
     # Configure logging once arguments are known
-    configure_logging(LogLevel.DEBUG if args.debug else LogLevel.INFO)
+    configure_logging(level=LogLevel.INFO)
+    if args.debug:
+        configure_logging(LogLevel.DEBUG)
 
     return args

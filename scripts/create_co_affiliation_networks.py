@@ -15,6 +15,7 @@ def main() -> None:
     year-gap–specific, full-range, and stable co-affiliation
     networks, and writes outputs when enabled.
     """
+
     parser = argparse.ArgumentParser(
         description="Build affiliation networks for all configured year-gap variants."
     )

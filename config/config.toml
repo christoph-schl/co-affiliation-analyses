@@ -10,5 +10,9 @@ fit_models = true
 
 [plot]
 impact_file_path = "data/impact/impact_data.csv"
-min_samples = 400
+min_samples = 300
 max_groups = 10
+
+[routing]
+output_file_path_routes = "data/valhalla/enriched_edges.csv"
+valhalla_base_url = "http://localhost:8002"

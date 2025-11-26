@@ -48,6 +48,10 @@ gravity:
 default-config:
 	$(call run_docker, create-default-config)
 
+## Run the enrich-edges CLI inside the container
+enrich-edges:
+	$(call run_docker, enrich-edges)
+
 ## Run with additional arguments passed like: make network-args ARGS="--dry-run --debug"
 network-args:
 	$(call run_docker, create-network $(ARGS))

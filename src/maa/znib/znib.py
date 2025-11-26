@@ -225,7 +225,6 @@ def get_gravity_model_for_year_gaps(
 
 def create_znib_gravity_models_from_config(
     config_path: Path,
-    debug: bool = False,
     validate_paths: bool = False,
     write_outputs_to_file: bool = False,
 ) -> GravityResultDatasets:
@@ -261,7 +260,6 @@ def create_znib_gravity_models_from_config(
         config=config_path,
         stage=ProcessingStage.GRAVITY.value,
         validate_paths=validate_paths,
-        debug=debug,
     )
     gravity_cfg = input_data.config
     article_df = input_data.articles

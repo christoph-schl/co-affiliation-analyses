@@ -13,7 +13,6 @@ from .models.input import (
     input_types,
 )
 from .registry import MODEL_REGISTRY
-from .utils import LogLevel, configure_logging
 
 try:
     import tomllib as _tomllib
@@ -154,7 +153,6 @@ def load_inputs_from_config(
     config: Path,
     stage: str,
     validate_paths: bool,
-    debug: bool,
 ) -> input_types:
     """
     Load all required inputs for a given stage using the provided configuration file.
@@ -173,8 +171,6 @@ def load_inputs_from_config(
         A fully populated LoadedInputs object containing articles, affiliations,
         routes (if applicable), and references to the loaded configuration.
     """
-
-    configure_logging(LogLevel.DEBUG if debug else LogLevel.INFO)
 
     cfg = load_toml_group_to_model(
         toml_path=config,

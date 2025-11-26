@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import InitVar, dataclass, field
 from functools import partial
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union
 
 import geopandas as gpd
 import networkx as nx
@@ -415,7 +415,7 @@ class AffiliationNetworkProcessor:
 
 
 def get_network_for_year_gaps(
-    article_df: Any, affiliation_gdf: Any, net_cfg: NetworkConfig
+    article_df: pd.DataFrame, affiliation_gdf: gpd.GeoDataFrame, net_cfg: NetworkConfig
 ) -> CoAffiliationNetworks:
     """
     Build affiliation networks for each configured year-gap variant.
@@ -456,7 +456,6 @@ def get_network_for_year_gaps(
 
 def create_networks_from_config(
     config_path: Path,
-    debug: bool = False,
     validate_paths: bool = False,
     write_outputs_to_file: bool = False,
 ) -> CoAffiliationNetworks:
@@ -471,8 +470,6 @@ def create_networks_from_config(
     :param config_path:
         Path to the configuration file specifying input data locations,
         processing settings, and output paths.
-    :param debug:
-        Enable verbose logging for troubleshooting or development.
     :param validate_paths:
         Validate that input and output paths exist before running.
     :param write_outputs_to_file:
@@ -486,7 +483,6 @@ def create_networks_from_config(
         config=config_path,
         stage=ProcessingStage.PREPROCESSING.value,
         validate_paths=validate_paths,
-        debug=debug,
     )
     _logger.info("network.build.start", output=str(input_data.config.output_path))
     results = get_network_for_year_gaps(

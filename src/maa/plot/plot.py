@@ -403,13 +403,12 @@ def get_plots_from_networks(
 
 
 def create_plots_from_config(
-    config_path: Path, debug: bool, validate_paths: bool, write_outputs_to_file: bool = False
+    config_path: Path, validate_paths: bool, write_outputs_to_file: bool = False
 ) -> None:
     input_data = load_inputs_from_config(
         config=config_path,
         stage=ProcessingStage.PLOT.value,
         validate_paths=validate_paths,
-        debug=debug,
     )
     _logger.info("network.build.start", output=str(input_data.config.output_path))
     results = get_network_for_year_gaps(

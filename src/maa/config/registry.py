@@ -4,10 +4,11 @@ from typing import Dict, Type
 
 from pydantic import BaseModel
 
-from .models.input import GravityConfig, NetworkConfig, PlotConfig
+from .models.input import GravityConfig, NetworkConfig, PlotConfig, RoutingConfig
 
 MODEL_REGISTRY: Dict[str, Type[BaseModel]] = {
     "network": NetworkConfig,
     "gravity": GravityConfig,
     "plot": PlotConfig,
+    "routing": RoutingConfig,
 }

@@ -4,6 +4,7 @@ import click
 import structlog
 
 from maa.config.constants import CONFIGURATION_PATH
+from maa.config.utils import LogLevel, configure_logging
 from maa.znib.znib import create_znib_gravity_models_from_config
 
 _logger = structlog.getLogger(__name__)
@@ -22,9 +23,9 @@ _logger = structlog.getLogger(__name__)
 @click.option("--debug", is_flag=True, help="Enable verbose logging.")
 def main(config: Path, validate_paths: bool, debug: bool) -> None:
     """CLI entry point for creating znib gravity model inputs and fitting the models."""
-
+    configure_logging(LogLevel.DEBUG if debug else LogLevel.INFO)
     create_znib_gravity_models_from_config(
-        config_path=config, debug=debug, validate_paths=validate_paths, write_outputs_to_file=True
+        config_path=config, validate_paths=validate_paths, write_outputs_to_file=True
     )
 
 

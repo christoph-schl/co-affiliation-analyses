@@ -6,6 +6,7 @@ import click
 import structlog
 
 from maa.config.constants import CONFIGURATION_PATH
+from maa.config.utils import LogLevel, configure_logging
 from maa.plot.plot import create_plots_from_config
 
 _logger = structlog.getLogger(__name__)
@@ -30,9 +31,9 @@ _logger = structlog.getLogger(__name__)
 @click.option("--debug", is_flag=True, help="Enable verbose logging.")
 def main(config: Path, stage: str, validate_paths: bool, debug: bool) -> None:
     """CLI entry point for building affiliation networks."""
-
+    configure_logging(LogLevel.DEBUG if debug else LogLevel.INFO)
     create_plots_from_config(
-        config_path=config, debug=debug, validate_paths=validate_paths, write_outputs_to_file=True
+        config_path=config, validate_paths=validate_paths, write_outputs_to_file=True
     )
 
 

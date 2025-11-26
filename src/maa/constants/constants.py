@@ -78,6 +78,7 @@ ORG_TYPE_COLORS = {
 }
 
 EID_COLUMN = "eid"
+DOI_COLUMN = "doi"
 
 # link organisation type reclassification
 LEVEL_2_CLASSIFICATION = {
