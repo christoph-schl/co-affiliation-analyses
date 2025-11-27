@@ -68,7 +68,7 @@ class ZINBModel:
             start_params=self.input_data.start_parameters,
             method=self.config.fit_method,
             maxiter=self.config.max_iterations,
-            disp=True,
+            disp=False,
             cov_type="HC0",
         )
 
