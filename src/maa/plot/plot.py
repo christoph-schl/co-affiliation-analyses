@@ -401,8 +401,8 @@ def get_plots_from_networks(
 
 
 def create_plots_from_config(
-    config_path: Path, validate_paths: bool, write_outputs_to_file: bool = False
-) -> None:
+    config_path: Path, validate_paths: bool = False, write_outputs_to_file: bool = False
+) -> PlotResult:
     input_data = load_inputs_from_config(
         config=config_path,
         stage=ProcessingStage.PLOT.value,
@@ -427,3 +427,5 @@ def create_plots_from_config(
 
     if write_outputs_to_file:
         write_outputs(results=plot_results, output_path=input_data.config.output_path)
+
+    return plot_results
