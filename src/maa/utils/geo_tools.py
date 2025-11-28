@@ -8,6 +8,7 @@ from geopandas import GeoDataFrame
 from routingpy import Valhalla
 from shapely import LineString
 
+from maa.config.utils import LogLevel, configure_logging
 from maa.constants.constants import (
     AFFILIATION_ID_COLUMN,
     AFFILIATION_ID_FROM_COLUMN,
@@ -180,6 +181,7 @@ def add_routes_to_edges(
     edge_df: pd.DataFrame,
     profile: str = ValhallaProfile.AUTO.value,
     valhalla_base_url: str = DEFAULT_VALHALLA_BASE_URL,
+    log_level: LogLevel = LogLevel.INFO,
 ) -> pd.DataFrame:
     """
     Enriches edges with routing metrics (distance and duration) using Valhalla matrix API.
@@ -193,9 +195,13 @@ def add_routes_to_edges(
         Valhalla profile (e.g. ValhallaProfile.AUTO.value).
     :param valhalla_base_url:
         The base URL of the Valhalla routing engine.
+    :param log_level:
+        The logging level for parallel processing.
     :return:
         Copy of edges with `distance_m` and `duration_s` filled.
     """
+
+    configure_logging(level=log_level)
 
     edge_subsets = df_split(
         df=edge_df,

@@ -9,6 +9,7 @@ from pandera.typing import DataFrame
 from maa.config.constants import ProcessingStage
 from maa.config.loader import load_inputs_from_config
 from maa.config.models.input import LoadedRoutingInputs
+from maa.config.utils import LogLevel
 from maa.constants.constants import (
     CHUNK_SIZE_PARALLEL_PROCESSING,
     DEFAULT_MAX_WORKERS_PARALLEL_PROCESSING,
@@ -29,6 +30,7 @@ def add_routing_parameters_to_edges(
     edge_df: pd.DataFrame,
     affiliation_gdf: gpd.GeoDataFrame,
     valhalla_base_url: str = DEFAULT_VALHALLA_BASE_URL,
+    log_level: LogLevel = LogLevel.INFO,
 ) -> DataFrame[RouteSchema]:
     """
     Merges affiliation locations into the edge DataFrame and enriches it with routing attributes
@@ -40,6 +42,8 @@ def add_routing_parameters_to_edges(
         GeoDataFrame containing affiliation information.
     :param valhalla_base_url:
         The Base URL of the Valhalla API.
+    :param log_level:
+        The logging level for parallel processing.
     :return:
         DataFrame with routing parameters added.
     """
@@ -56,6 +60,7 @@ def add_routing_parameters_to_edges(
         input_function=add_routes_to_edges,
         df=edge_df,
         valhalla_base_url=valhalla_base_url,
+        log_level=log_level,
         chunk_size=CHUNK_SIZE_PARALLEL_PROCESSING,
         max_workers=max_workers,
         verbose=True,
@@ -69,7 +74,8 @@ def create_and_enrich_edges_from_config(
     validate_paths: bool = False,
     write_outputs_to_file: bool = False,
     override_edges: bool = False,
-) -> None:
+    log_level: LogLevel = LogLevel.INFO,
+) -> pd.DataFrame:
     """
     Create co-affiliation edges and enrich them with travel data based on a configuration file.
 
@@ -80,14 +86,14 @@ def create_and_enrich_edges_from_config(
 
     :param config_path:
         Path to the configuration file defining inputs and routing settings.
-    :param debug:
-        Enable verbose debug logging.
     :param validate_paths:
         Validate file and directory paths defined in the configuration.
     :param write_outputs_to_file:
         Write the enriched edges to the output file specified in the config.
     :param override_edges:
         Overwrite the output file if it already exists.
+    :param log_level:
+        The log level for parallel processing.
     :return:
         A pandas DataFrame containing the enriched edges.
     """
@@ -104,6 +110,7 @@ def create_and_enrich_edges_from_config(
         edge_df=edges,
         affiliation_gdf=input_data.affiliations,
         valhalla_base_url=input_data.valhalla_base_url,
+        log_level=log_level,
     )
 
     if write_outputs_to_file:
@@ -118,6 +125,8 @@ def create_and_enrich_edges_from_config(
                 f"Skipping write: --override-edges flag not set and file already exists at "
                 f"{output_path}"
             )
+
+    return enriched
 
 
 def _get_network(article_df: pd.DataFrame, affiliation_gdf: gpd.GeoDataFrame) -> pd.DataFrame:
