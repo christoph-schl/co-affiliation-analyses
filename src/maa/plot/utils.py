@@ -1,3 +1,5 @@
+# Copyright © 2025 Christoph Schlager, TU Wien
+
 from collections import defaultdict
 from dataclasses import dataclass
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple

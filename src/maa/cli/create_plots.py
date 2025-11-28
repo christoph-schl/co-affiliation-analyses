@@ -1,3 +1,5 @@
+# Copyright © 2025 Christoph Schlager, TU Wien
+
 from __future__ import annotations
 
 from pathlib import Path

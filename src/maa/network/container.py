@@ -1,3 +1,5 @@
+# Copyright © 2025 Christoph Schlager, TU Wien
+
 from dataclasses import dataclass
 
 import geopandas as gpd

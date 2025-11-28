@@ -1,3 +1,5 @@
+# Copyright © 2025 Christoph Schlager, TU Wien
+
 import os
 from collections import namedtuple
 from pathlib import Path

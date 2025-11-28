@@ -1,3 +1,5 @@
+# Copyright © 2025 Christoph Schlager, TU Wien
+
 import enum
 from dataclasses import dataclass
 from typing import List

@@ -1,3 +1,5 @@
+# Copyright © 2025 Christoph Schlager, TU Wien
+
 import pandas as pd
 
 from maa.constants.constants import (

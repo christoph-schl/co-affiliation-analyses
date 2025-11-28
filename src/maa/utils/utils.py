@@ -1,3 +1,5 @@
+# Copyright © 2025 Christoph Schlager, TU Wien
+
 from typing import Dict, Iterable, List, Optional, Union
 
 import geopandas as gpd

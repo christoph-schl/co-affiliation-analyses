@@ -1,3 +1,5 @@
+# Copyright © 2025 Christoph Schlager, TU Wien
+
 from dataclasses import dataclass, field
 from itertools import combinations
 from typing import List, Optional, Union

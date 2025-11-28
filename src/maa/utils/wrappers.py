@@ -1,3 +1,5 @@
+# Copyright © 2025 Christoph Schlager, TU Wien
+
 import concurrent
 import functools
 import traceback  # To get detailed error messages

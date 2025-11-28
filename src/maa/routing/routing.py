@@ -1,9 +1,10 @@
+# Copyright © 2025 Christoph Schlager, TU Wien
+
 import logging
 from pathlib import Path
 
 import geopandas as gpd
 import pandas as pd
-import pandera.pandas as pa
 from pandera.typing import DataFrame
 
 from maa.config.constants import ProcessingStage
@@ -25,7 +26,6 @@ from maa.znib.utils import get_znib_edges
 logger = logging.getLogger(__name__)
 
 
-@pa.check_types(lazy=True)
 def add_routing_parameters_to_edges(
     edge_df: pd.DataFrame,
     affiliation_gdf: gpd.GeoDataFrame,

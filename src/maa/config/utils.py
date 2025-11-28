@@ -1,3 +1,5 @@
+# Copyright © 2025 Christoph Schlager, TU Wien
+
 import logging
 from enum import Enum
 from pathlib import Path

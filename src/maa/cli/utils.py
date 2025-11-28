@@ -1,3 +1,5 @@
+# Copyright © 2025 Christoph Schlager, TU Wien
+
 """
 Shared CLI utilities for project scripts based on argparse.
 """

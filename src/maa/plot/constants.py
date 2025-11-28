@@ -1,3 +1,5 @@
+# Copyright © 2025 Christoph Schlager, TU Wien
+
 karl_landsteiner_name = "Karl Landsteiner Privatuniversität für Gesundheitswissenschaften Krems"
 AFFILIATION_NAME_ALIASES = {
     "CEST Kompetenzzentrum fuer Elektrochemische Oberflaechentechnologie GmbH Linz": "CEST Linz",

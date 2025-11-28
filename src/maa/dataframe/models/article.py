@@ -1,3 +1,5 @@
+# Copyright © 2025 Christoph Schlager, TU Wien
+
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
