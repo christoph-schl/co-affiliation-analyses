@@ -1,3 +1,5 @@
+# Copyright © 2025 Christoph Schlager, TU Wien
+
 from enum import Enum
 from typing import List, Tuple, Union
 
@@ -257,6 +259,7 @@ def add_routes_to_edges(
             TO_NODE_COLUMN: AFFILIATION_ID_TO_COLUMN,
         }
     )
+    edges[DURATION_S_COLUMN] = edges[DURATION_S_COLUMN].astype(float)
     return edges
 
 
