@@ -256,20 +256,4 @@ enrich-edges --config path/to/config.yml --override-edges
 
 If you use CAA in your research, please cite it as:
 
-**APA:**
-
-YourName, A. (2025). *Co-Affiliation Analysis (CAA): A Python package
-for analysing institutional pairing effects*. Version X.X.
-https://github.com/your-repo
-
-**BibTeX:**
-
-``` bibtex
-@software{CAA2025,
-  author    = {YourName, Author},
-  title     = {Co-Affiliation Analysis (CAA): A Python package for analysing institutional pairing effects},
-  year      = {2025},
-  version   = {X.X},
-  url       = {https://github.com/your-repo}
-}
-```
+**ToDo: Add BibTex**
