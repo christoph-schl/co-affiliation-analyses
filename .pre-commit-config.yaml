@@ -13,6 +13,12 @@ repos:
         args: ["--django"]
         name: "Tests should match test_*.py"
 
+-   repo: https://github.com/Lucas-C/pre-commit-hooks
+    rev: v1.5.5
+    hooks:
+    - id: insert-license
+      files: '.*\.py$'
+
 - repo: https://github.com/PyCQA/flake8
   rev: 7.3.0
   hooks:
