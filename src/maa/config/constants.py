@@ -45,7 +45,7 @@ class GravityDefaults:
 
 
 @dataclass(frozen=True)
-class PlotDefaults:
+class ImpactDefaults:
     impact_file_path: Path = DEFAULT_IMPACT_FILE
     min_samples: int = DEFAULT_MIN_SAMPLES
     max_groups: int = DEFAULT_MAX_GROUP_SIZE
@@ -60,7 +60,7 @@ class RoutingDefaults:
 DEFAULT_CONFIG_CONTENT = {
     "network": asdict(NetworkDefaults()),
     "gravity": asdict(GravityDefaults()),
-    "plot": asdict(PlotDefaults()),
+    "impact": asdict(ImpactDefaults()),
     "routing": asdict(RoutingDefaults()),
 }
 
@@ -68,5 +68,5 @@ DEFAULT_CONFIG_CONTENT = {
 class ProcessingStage(enum.Enum):
     PREPROCESSING = "network"
     GRAVITY = "gravity"
-    PLOT = "plot"
+    IMPACT = "impact"
     ROUTING = "routing"

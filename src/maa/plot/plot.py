@@ -13,7 +13,7 @@ from matplotlib import pyplot as plt
 
 from maa.config.constants import ProcessingStage
 from maa.config.loader import load_inputs_from_config
-from maa.config.models.input import LoadedPlotInputs, PlotConfig
+from maa.config.models.input import ImpactConfig, LoadedPlotInputs
 from maa.config.models.output import CoAffiliationNetworks, PlotResult, write_outputs
 from maa.constants.constants import (
     AFFILIATION_CLASS_COLUMN,
@@ -349,7 +349,7 @@ class ImpactPlot(Impact):
 
 
 def get_plots_from_networks(
-    networks: CoAffiliationNetworks, impact_df: pd.DataFrame, plot_cfg: PlotConfig
+    networks: CoAffiliationNetworks, impact_df: pd.DataFrame, plot_cfg: ImpactConfig
 ) -> PlotResult:
     """
      Generate all plots derived from a collection of network analysis results.
@@ -407,7 +407,7 @@ def create_plots_from_config(
 ) -> PlotResult:
     input_data = load_inputs_from_config(
         config=config_path,
-        stage=ProcessingStage.PLOT.value,
+        stage=ProcessingStage.IMPACT.value,
         validate_paths=validate_paths,
     )
     _logger.info("network.build.start", output=str(input_data.config.output_path))
@@ -420,7 +420,7 @@ def create_plots_from_config(
     _logger.info("plot.build.start", output=str(input_data.config.output_path))
     plot_cfg = input_data.config
     # 🔥type narrowing for mypy:
-    assert isinstance(plot_cfg, PlotConfig)
+    assert isinstance(plot_cfg, ImpactConfig)
     assert isinstance(input_data, LoadedPlotInputs)
     plot_results = get_plots_from_networks(
         networks=results, plot_cfg=plot_cfg, impact_df=input_data.impact

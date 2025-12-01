@@ -171,7 +171,7 @@ class RoutingConfig(NetworkConfig):
         )
 
 
-class PlotConfig(NetworkConfig):
+class ImpactConfig(NetworkConfig):
     impact_file_path: Path = Field(..., description="Parquet with impact data for article records")
     min_samples: int = Field(..., description="Minimum number of samples to include")
     max_groups: int = Field(..., description="Maximum number of groups to include")
@@ -191,4 +191,4 @@ class PlotConfig(NetworkConfig):
         )
 
 
-config_types = Union[NetworkConfig, GravityConfig, PlotConfig, RoutingConfig]
+config_types = Union[NetworkConfig, GravityConfig, ImpactConfig, RoutingConfig]
