@@ -10,6 +10,7 @@ import structlog
 
 from maa.constants.constants import (
     AFFILIATION_CLASS_COLUMN,
+    AFFILIATION_ID_COLUMN,
     CLASS_NAME_COLUMN,
     COVER_DATE_COLUMN,
     DEFAULT_MAX_WORKERS_PARALLEL_PROCESSING,
@@ -32,6 +33,7 @@ _MAX_INDEX_COLUMN = "max_index"
 _MWPR_INDEX_COLUMN = "mwpr_index"
 _AFFILIATION_INDEX_COLUMN = "affiliation_idx"
 _CHUNK_SIZE_PARALLEL_PROCESSING = 15
+_NODE_COLUMN = "node"
 
 
 class AffiliationType(enum.Enum):
@@ -81,6 +83,8 @@ def merge_impact_measures_to_nodes(
         last_affiliation_idx = node_df.affiliation_idx == node_df.affiliation_count - 1
         node_df.loc[first_affiliation_idx, AFFILIATION_CLASS_COLUMN] = AffiliationType.FA.value
         node_df.loc[last_affiliation_idx, AFFILIATION_CLASS_COLUMN] = AffiliationType.LA.value
+
+    node_df = node_df.rename(columns={_NODE_COLUMN: AFFILIATION_ID_COLUMN}, errors="ignore")
 
     return node_df
 
@@ -160,9 +164,12 @@ def get_mean_weighted_percentile_ranks(
     ).reset_index()
     mean_weighted_pr[SAMPLES_COLUMN] = mean_weighted_pr[SAMPLES_COLUMN].astype("int64")
 
+    # merge organisation type and affiliation id to df
     if (group_column != ORGANISATION_TYPE_COLUMN) and (ORGANISATION_TYPE_COLUMN in df.columns):
         mean_weighted_pr = mean_weighted_pr.merge(
-            right=df[[group_column, ORGANISATION_TYPE_COLUMN]].drop_duplicates(subset=group_column),
+            right=df[
+                [group_column, ORGANISATION_TYPE_COLUMN, AFFILIATION_ID_COLUMN]
+            ].drop_duplicates(subset=group_column),
             left_on=group_column,
             right_on=group_column,
             how="left",
