@@ -438,3 +438,18 @@ def get_vos_cluster_numbers(affiliation_graph: Graph) -> pd.DataFrame:
     color_df.index.name = _CLUSTER_COLOR_COLUMN
 
     return color_df
+
+
+def filter_links(
+    link_df: pd.DataFrame | gpd.GeoDataFrame, affiliation_ids: list[np.int64]
+) -> pd.DataFrame | gpd.GeoDataFrame:
+    """
+    Filter link rows where either endpoint matches one of the given affiliation IDs.
+
+    :param link_df: Input DataFrame or GeoDataFrame containing link records.
+    :param affiliation_ids: List of node IDs to filter for.
+    :return: A filtered DataFrame/GeoDataFrame containing only matching links.
+    """
+
+    cols = [FROM_NODE_COLUMN, TO_NODE_COLUMN]
+    return link_df[link_df[cols].isin(affiliation_ids).any(axis=1)]

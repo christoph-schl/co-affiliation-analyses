@@ -115,7 +115,9 @@ SAMPLES_COLUMN = "samples"
 NETWORK_COUNTRY = "AUT"
 
 LINK_DIR = Path("network/links")
+LINK_DIR_TOP = Path("network/links/top")
 VOS_DIR = Path("network/vos")
+VOS_DIR_TOP = Path("network/vos/top")
 GRAVITY_INPUT_DIR = Path("gravity/input")
 GRAVITY_OUTPUT_DIR = Path("gravity/output")
 PLOTS_OUTPUT_DIR = Path("plot/impact")

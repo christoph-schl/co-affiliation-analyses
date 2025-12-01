@@ -173,6 +173,30 @@ print(edges.head())
 
 ------------------------------------------------------------------------
 
+### **5. create_top_performers_networks.py**
+
+Builds and enriches affiliation edges with travel routing information.
+
+-   Reads network settings from the configuration file.
+-   Builds **year-gap**, **full-range**, and **stable** co-affiliation
+    networks.
+-   Computes mwPR for the **full-range** network and filters top performing research organisations
+-   Filters network connections from top performing organisations.
+-   Writes all filtered network files to the configured output folder.
+
+
+```python
+from maa.network.network import create_top_performers_networks_from_config
+from maa.config.constants import CONFIGURATION_PATH
+
+networks = create_top_performers_networks_from_config(
+        config_path=CONFIGURATION_PATH,
+        write_outputs_to_file=True,
+    )
+```
+
+------------------------------------------------------------------------
+
 ## Running Scripts Directly
 
 ``` bash
@@ -251,6 +275,14 @@ enrich-edges --config path/to/config.yml --override-edges
 
 ------------------------------------------------------------------------
 
+
+## 6. Create Co-Affiliation Networks for Top Performers
+
+``` bash
+create-top-performers-network --config path/to/config.yml
+```
+
+------------------------------------------------------------------------
 
 ## Citation
 

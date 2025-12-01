@@ -414,7 +414,7 @@ def create_plots_from_config(
     results = get_network_for_year_gaps(
         article_df=input_data.articles,
         affiliation_gdf=input_data.affiliations,
-        net_cfg=input_data.config,
+        year_gap_stable=input_data.config.year_gap_stable_links,
     )
     _logger.info("network.build.done")
     _logger.info("plot.build.start", output=str(input_data.config.output_path))

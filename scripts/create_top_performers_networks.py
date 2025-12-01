@@ -1,0 +1,37 @@
+#!/usr/bin/env python3
+# Copyright © 2025 Christoph Schlager, TU Wien
+
+from __future__ import annotations
+
+import argparse
+
+from maa.cli.utils import add_standard_cli_arguments, parse_and_configure
+from maa.network.network import create_top_performers_networks_from_config
+
+
+def main() -> None:
+    """
+    Generate co-affiliation networks for top-performing research organisations for all
+    configured variants.
+
+    Reads network settings from the configuration file, builds
+    year-gap–specific, full-range, and stable co-affiliation
+    networks, and writes outputs when enabled.
+    """
+
+    parser = argparse.ArgumentParser(
+        description="Build top performing affiliation networks for all configured year-gap "
+        "variants."
+    )
+    add_standard_cli_arguments(parser=parser)
+    args = parse_and_configure(parser=parser)
+
+    create_top_performers_networks_from_config(
+        config_path=args.config,
+        validate_paths=args.validate_paths,
+        write_outputs_to_file=True,
+    )
+
+
+if __name__ == "__main__":
+    main()

@@ -15,7 +15,7 @@ import structlog
 
 from maa.config.constants import ProcessingStage
 from maa.config.loader import load_inputs_from_config
-from maa.config.models.input import NetworkConfig
+from maa.config.models.input import ImpactConfig, LoadedPlotInputs
 from maa.config.models.output import (
     CoAffiliationNetworks,
     NetworkResult,
@@ -23,6 +23,7 @@ from maa.config.models.output import (
     write_outputs,
 )
 from maa.constants.constants import (
+    AFFILIATION_ID_COLUMN,
     ARTICLE_AFFILIATION_ID_COLUMN,
     ARTICLE_AFFILIATION_INDEX_COLUMN,
     LEVEL_2_CLASSIFICATION,
@@ -33,10 +34,12 @@ from maa.constants.constants import (
 )
 from maa.dataframe.models.affiliation import AffiliationSchema
 from maa.dataframe.models.article import ArticleSchema
+from maa.impact.impact import Impact
 from maa.network.container import AffiliationGraph
 from maa.network.utils import (
     create_affiliation_links,
     create_graph_from_links,
+    filter_links,
     get_vos_cluster_numbers,
     retain_affiliation_links_with_min_year_gap,
 )
@@ -416,7 +419,7 @@ class AffiliationNetworkProcessor:
 
 
 def get_network_for_year_gaps(
-    article_df: pd.DataFrame, affiliation_gdf: gpd.GeoDataFrame, net_cfg: NetworkConfig
+    article_df: pd.DataFrame, affiliation_gdf: gpd.GeoDataFrame, year_gap_stable: int
 ) -> CoAffiliationNetworks:
     """
     Build affiliation networks for each configured year-gap variant.
@@ -430,8 +433,8 @@ def get_network_for_year_gaps(
         DataFrame containing article metadata.
     :param affiliation_gdf:
         GeoDataFrame containing affiliation information.
-    :param net_cfg:
-        NetworkConfig object defining year-gap parameters and paths.
+    :param year_gap_stable:
+        The year gap for the stable co-affiliation network.
     :return:
         YearGapResult:
             An object containing network results for unfiltered `all` co-affiliations and
@@ -445,7 +448,7 @@ def get_network_for_year_gaps(
     )
 
     network_dict: Dict[str, NetworkResult] = {}
-    for yg in iter_year_gaps(net_cfg.year_gap_stable_links):
+    for yg in iter_year_gaps(stable_gap=year_gap_stable):
         _logger.info("processing.year_gap", gap=yg.gap, suffix=yg.suffix)
         link_gdf = processor.get_affiliation_links(min_year_gap=yg.gap)
         graph = processor.get_affiliation_graph()
@@ -489,7 +492,7 @@ def create_networks_from_config(
     results = get_network_for_year_gaps(
         article_df=input_data.articles,
         affiliation_gdf=input_data.affiliations,
-        net_cfg=input_data.config,
+        year_gap_stable=input_data.config.year_gap_stable_links,
     )
 
     if write_outputs_to_file:
@@ -497,3 +500,103 @@ def create_networks_from_config(
     _logger.info("network.build.done")
 
     return results
+
+
+def _get_top_performers_affiliation_ids(
+    link_gdf: Union[pd.DataFrame, gpd.GeoDataFrame],
+    impact_df: pd.DataFrame,
+    min_samples: int,
+    max_groups: int,
+) -> List[np.int64]:
+    impact = Impact(
+        link_gdf=link_gdf,
+        impact_df=impact_df,
+    )
+
+    mwpr = impact.get_mwpr(
+        group_column=PREFERRED_AFFILIATION_NAME_COLUMN,
+        min_samples=min_samples,
+    ).head(max_groups)
+    top_affiliation_ids = mwpr[AFFILIATION_ID_COLUMN].unique().tolist()
+    return top_affiliation_ids
+
+
+def create_top_performers_networks_from_config(
+    config_path: Path,
+    validate_paths: bool = False,
+    write_outputs_to_file: bool = False,
+) -> CoAffiliationNetworks:
+    """
+    Create co-affiliation networks for top-performing research organisations based on configuration.
+
+    :param config_path: Path to the configuration file.
+    :param validate_paths: Validate required paths before processing.
+    :param write_outputs_to_file: Whether outputs should be written to disk.
+    :return: A CoAffiliationNetworks container with networks for each year gap.
+    """
+    input_data = load_inputs_from_config(
+        config=config_path,
+        stage=ProcessingStage.IMPACT.value,
+        validate_paths=validate_paths,
+    )
+
+    impact_cfg = input_data.config
+
+    assert isinstance(impact_cfg, ImpactConfig)
+    assert isinstance(input_data, LoadedPlotInputs)
+
+    _logger.info("network.build.start", output=str(impact_cfg.output_path))
+
+    networks = get_network_for_year_gaps(
+        article_df=input_data.articles,
+        affiliation_gdf=input_data.affiliations,
+        year_gap_stable=impact_cfg.year_gap_stable_links,
+    )
+
+    top_affiliation_ids = _get_top_performers_affiliation_ids(
+        link_gdf=networks.all.link_gdf,
+        impact_df=input_data.impact,
+        min_samples=impact_cfg.min_samples,
+        max_groups=impact_cfg.max_groups,
+    )
+
+    results = get_networks_for_affiliations(
+        networks=networks,
+        affiliation_ids=top_affiliation_ids,
+        year_gap_stable=impact_cfg.year_gap_stable_links,
+    )
+    _logger.info("network.build.done")
+
+    if write_outputs_to_file:
+        write_outputs(results=results, output_path=input_data.config.output_path)
+    return results
+
+
+def get_networks_for_affiliations(
+    networks: CoAffiliationNetworks,
+    affiliation_ids: list[np.int64],
+    year_gap_stable: int,
+) -> CoAffiliationNetworks:
+    """
+    Build co-affiliation networks for the given affiliation IDs
+    across the configured year-gap variants.
+
+    :param networks: Full set of networks for all year-gap settings.
+    :param affiliation_ids: List of affiliation IDs to be filtered.
+    :param year_gap_stable: The year gap for the stable Link Dataset.
+    :return: A CoAffiliationNetworks object containing filtered networks.
+    """
+    network_dict: Dict[str, NetworkResult] = {}
+
+    for yg in iter_year_gaps(year_gap_stable):
+        links = getattr(networks, yg.suffix).link_gdf
+        filtered_links = filter_links(link_df=links, affiliation_ids=affiliation_ids)
+
+        processor = AffiliationNetworkProcessor(link_gdf=filtered_links)
+        graph = processor.get_affiliation_graph()
+
+        network_dict[yg.suffix] = NetworkResult(
+            suffix=yg.suffix, graph=graph, link_gdf=filtered_links, top_performer=True
+        )
+
+    return CoAffiliationNetworks.from_dict(network_dict)

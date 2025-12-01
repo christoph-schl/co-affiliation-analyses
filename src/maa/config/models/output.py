@@ -22,11 +22,13 @@ from maa.constants.constants import (
     GRAVITY_INTRA_RESULTS_PREFIX,
     GRAVITY_OUTPUT_DIR,
     LINK_DIR,
+    LINK_DIR_TOP,
     PLOTS_OUTPUT_DIR,
     TIMESERIES_PLOT_INSTITUTION_FILENAME,
     TIMESERIES_PLOT_ORG_TYPE_FILENAME,
     VIOLINE_PLOT_FILENAME,
     VOS_DIR,
+    VOS_DIR_TOP,
     VOS_MAP_PREFIX,
     VOS_NETWORK_PREFIX,
 )
@@ -72,6 +74,18 @@ class OutputPaths:
         return self._path(VOS_DIR, f"{VOS_NETWORK_PREFIX}_{self.suffix}.txt")
 
     @property
+    def links_top(self) -> Path:
+        return self._path(LINK_DIR_TOP, f"{AFFILIATION_LINKS_PREFIX}_{self.suffix}.gpkg")
+
+    @property
+    def map_top(self) -> Path:
+        return self._path(VOS_DIR_TOP, f"{VOS_MAP_PREFIX}_{self.suffix}.txt")
+
+    @property
+    def network_top(self) -> Path:
+        return self._path(VOS_DIR_TOP, f"{VOS_NETWORK_PREFIX}_{self.suffix}.txt")
+
+    @property
     def gravity(self) -> Path:
         return self._path(GRAVITY_INPUT_DIR, f"{GRAVITY_INPUT_PREFIX}_{self.suffix}.txt")
 
@@ -100,19 +114,27 @@ class OutputPaths:
         return self._path(PLOTS_OUTPUT_DIR, TIMESERIES_PLOT_INSTITUTION_FILENAME)
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 class NetworkResult:
     """Result object for a computed network variant."""
 
     suffix: str
     graph: AffiliationGraph
     link_gdf: gpd.GeoDataFrame
+    top_performer: Optional[bool] = False
 
     def write(self, output_paths: "OutputPaths") -> None:
-        """Write the components common to all network-like results."""
-        self.link_gdf.to_file(output_paths.links)
-        nx2vos.write_vos_map(G=self.graph.graph, fname=output_paths.map)
-        nx2vos.write_vos_network(G=self.graph.graph, fname=output_paths.network)
+        """Write network outputs (links, map, and network) to disk."""
+
+        # choose correct paths depending on top_performer flag
+        links_path = output_paths.links_top if self.top_performer else output_paths.links
+        map_path = output_paths.map_top if self.top_performer else output_paths.map
+        network_path = output_paths.network_top if self.top_performer else output_paths.network
+
+        # write all outputs
+        self.link_gdf.to_file(links_path)
+        nx2vos.write_vos_map(G=self.graph.graph, fname=map_path)
+        nx2vos.write_vos_network(G=self.graph.graph, fname=network_path)
 
 
 @dataclass(frozen=True)

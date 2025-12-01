@@ -37,6 +37,7 @@ create-znib-gravity-model = "maa.cli.create_znib_gravity_model:main"
 create-plots = "maa.cli.create_plots:main"
 create-default-config = "maa.cli.create_default_config:main"
 enrich-edges = "maa.cli.enrich_edges_with_travel_data:main"
+create-top-performers-network = "maa.cli.create_top_performers_network:main"
 
 [tool.poetry]
 packages = [
