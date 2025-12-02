@@ -125,6 +125,7 @@ PLOTS_OUTPUT_DIR = Path("plot/impact")
 AFFILIATION_LINKS_PREFIX = "affiliation_links"
 VOS_MAP_PREFIX = "map"
 VOS_NETWORK_PREFIX = "network"
+ORG_TYPE_COLORS_PREFIX = "org_type_colors"
 GRAVITY_INPUT_PREFIX = "model_input"
 GRAVITY_INTRA_RESULTS_PREFIX = "intra_results"
 GRAVITY_INTER_RESULTS_PREFIX = "inter_results"

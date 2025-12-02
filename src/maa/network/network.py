@@ -462,8 +462,12 @@ def get_network_for_year_gaps(
         _logger.info("processing.year_gap", gap=yg.gap, suffix=yg.suffix)
         link_gdf = processor.get_affiliation_links(min_year_gap=yg.gap)
         graph = processor.get_affiliation_graph()
-        processor.vos_org_type_colors
-        network_dict[yg.suffix] = NetworkResult(suffix=yg.suffix, graph=graph, link_gdf=link_gdf)
+        network_dict[yg.suffix] = NetworkResult(
+            suffix=yg.suffix,
+            graph=graph,
+            link_gdf=link_gdf,
+            vos_org_type_colors=processor.vos_org_type_colors,
+        )
 
     network_data = CoAffiliationNetworks.from_dict(data=network_dict)
     return network_data
@@ -609,7 +613,11 @@ def get_networks_for_affiliations(
         graph = processor.get_affiliation_graph()
 
         network_dict[yg.suffix] = NetworkResult(
-            suffix=yg.suffix, graph=graph, link_gdf=filtered_links, top_performer=True
+            suffix=yg.suffix,
+            graph=graph,
+            link_gdf=filtered_links,
+            vos_org_type_colors=processor.vos_org_type_colors,
+            top_performer=True,
         )
 
     return CoAffiliationNetworks.from_dict(network_dict)

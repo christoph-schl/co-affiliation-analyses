@@ -23,6 +23,8 @@ from maa.constants.constants import (
     GRAVITY_OUTPUT_DIR,
     LINK_DIR,
     LINK_DIR_TOP,
+    ORG_TYPE_COLORS_PREFIX,
+    ORGANISATION_TYPE_COLUMN,
     PLOTS_OUTPUT_DIR,
     TIMESERIES_PLOT_INSTITUTION_FILENAME,
     TIMESERIES_PLOT_ORG_TYPE_FILENAME,
@@ -74,6 +76,10 @@ class OutputPaths:
         return self._path(VOS_DIR, f"{VOS_NETWORK_PREFIX}_{self.suffix}.txt")
 
     @property
+    def org_type_colors(self) -> Path:
+        return self._path(VOS_DIR, f"{ORG_TYPE_COLORS_PREFIX}_{self.suffix}.txt")
+
+    @property
     def links_top(self) -> Path:
         return self._path(LINK_DIR_TOP, f"{AFFILIATION_LINKS_PREFIX}_{self.suffix}.gpkg")
 
@@ -84,6 +90,10 @@ class OutputPaths:
     @property
     def network_top(self) -> Path:
         return self._path(VOS_DIR_TOP, f"{VOS_NETWORK_PREFIX}_{self.suffix}.txt")
+
+    @property
+    def org_type_colors_top(self) -> Path:
+        return self._path(VOS_DIR_TOP, f"{ORG_TYPE_COLORS_PREFIX}_{self.suffix}.txt")
 
     @property
     def gravity(self) -> Path:
@@ -121,6 +131,7 @@ class NetworkResult:
     suffix: str
     graph: AffiliationGraph
     link_gdf: gpd.GeoDataFrame
+    vos_org_type_colors: pd.DataFrame
     top_performer: Optional[bool] = False
 
     def write(self, output_paths: "OutputPaths") -> None:
@@ -130,11 +141,17 @@ class NetworkResult:
         links_path = output_paths.links_top if self.top_performer else output_paths.links
         map_path = output_paths.map_top if self.top_performer else output_paths.map
         network_path = output_paths.network_top if self.top_performer else output_paths.network
+        color_path = (
+            output_paths.org_type_colors_top if self.top_performer else output_paths.org_type_colors
+        )
 
         # write all outputs
         self.link_gdf.to_file(links_path)
-        nx2vos.write_vos_map(G=self.graph.graph, fname=map_path)
+        nx2vos.write_vos_map(
+            G=self.graph.graph, fname=map_path, cluster_attr=ORGANISATION_TYPE_COLUMN
+        )
         nx2vos.write_vos_network(G=self.graph.graph, fname=network_path)
+        self.vos_org_type_colors.to_csv(color_path, sep="\t", index=True, header=True)
 
 
 @dataclass(frozen=True)
