@@ -39,12 +39,13 @@ from maa.network.container import AffiliationGraph
 from maa.network.utils import (
     create_affiliation_links,
     create_graph_from_links,
-    filter_links,
+    filter_links_by_affiliation_ids,
     get_vos_cluster_numbers,
     retain_affiliation_links_with_min_year_gap,
 )
 from maa.plot.constants import AFFILIATION_NAME_ALIASES
 from maa.utils.utils import (
+    filter_organization_types,
     get_affiliation_id_map,
     get_articles_per_author,
     get_link_nodes,
@@ -251,15 +252,14 @@ class AffiliationNetworkProcessor:
 
     @property
     def vos_org_type_colors(self) -> pd.DataFrame:
-        if self._vos_org_type_colors is None:
-            if self._edge_graph is None:
-                raise MissingEdgeGraphError(
-                    "Edge graph is not set. "
-                    "Set it when constructing or call `_create_affiliation_graph()` first."
-                )
-            self._vos_org_type_colors = get_vos_cluster_numbers(
-                affiliation_graph=self._edge_graph.graph
+        if self._edge_graph is None:
+            raise MissingEdgeGraphError(
+                "Edge graph is not set. "
+                "Set it when constructing or call `_create_affiliation_graph()` first."
             )
+        self._vos_org_type_colors = get_vos_cluster_numbers(
+            affiliation_graph=self._edge_graph.graph
+        )
         return self._vos_org_type_colors
 
     @property
@@ -288,7 +288,11 @@ class AffiliationNetworkProcessor:
         self.affiliation_gdf = AffiliationSchema.validate(self.affiliation_gdf)
 
     @get_execution_time
-    def get_affiliation_links(self, min_year_gap: Optional[int] = None) -> gpd.GeoDataFrame:
+    def get_affiliation_links(
+        self,
+        min_year_gap: Optional[int] = None,
+        org_type_list: Optional[List[str]] = None,
+    ) -> gpd.GeoDataFrame:
         """
         Creates a GeoDataFrame with all unique link combinations for authors with multiple
         affiliations.
@@ -303,13 +307,15 @@ class AffiliationNetworkProcessor:
                 Minimum required difference (in years) between earliest and latest publication
                 years for an author at the same affiliation pair. If < 1, the original DataFrame
                 is returned.
+        :param org_type_list:
+            Optional list of organisation types used to filter the link connecting organisations.
 
         :return:
                 A GeoDataFrame containing links between affiliations, with a line geometry for each
                 link.
         """
 
-        self._create_affiliation_links(min_year_gap=min_year_gap)
+        self._create_affiliation_links(min_year_gap=min_year_gap, org_type_list=org_type_list)
 
         return self._link_gdf
 
@@ -336,17 +342,21 @@ class AffiliationNetworkProcessor:
         assert self._edge_graph is not None
         return self._edge_graph
 
-    def _create_affiliation_links(self, min_year_gap: Optional[int] = None) -> None:
+    def _create_affiliation_links(
+        self, min_year_gap: Optional[int] = None, org_type_list: Optional[List[str]] = None
+    ) -> None:
         if self._link_gdf is None:
             self._link_gdf = create_affiliation_links(
                 affiliation_gdf=self.affiliation_gdf,
                 article_author_df=self._article_author_df,
                 country_filter=self.country_filter,
             )
-            self.link = self._link_gdf
 
         if min_year_gap is not None:
             self.min_year_gap = min_year_gap
+
+        if org_type_list is not None:
+            self._link_gdf = filter_organization_types(df=self._link_gdf, org_types=org_type_list)
 
         self._link_gdf = retain_affiliation_links_with_min_year_gap(
             link_gdf=self._link_gdf, min_year_gap=self.min_year_gap
@@ -452,6 +462,7 @@ def get_network_for_year_gaps(
         _logger.info("processing.year_gap", gap=yg.gap, suffix=yg.suffix)
         link_gdf = processor.get_affiliation_links(min_year_gap=yg.gap)
         graph = processor.get_affiliation_graph()
+        processor.vos_org_type_colors
         network_dict[yg.suffix] = NetworkResult(suffix=yg.suffix, graph=graph, link_gdf=link_gdf)
 
     network_data = CoAffiliationNetworks.from_dict(data=network_dict)
@@ -590,7 +601,9 @@ def get_networks_for_affiliations(
 
     for yg in iter_year_gaps(year_gap_stable):
         links = getattr(networks, yg.suffix).link_gdf
-        filtered_links = filter_links(link_df=links, affiliation_ids=affiliation_ids)
+        filtered_links = filter_links_by_affiliation_ids(
+            link_df=links, affiliation_ids=affiliation_ids
+        )
 
         processor = AffiliationNetworkProcessor(link_gdf=filtered_links)
         graph = processor.get_affiliation_graph()

@@ -440,7 +440,7 @@ def get_vos_cluster_numbers(affiliation_graph: Graph) -> pd.DataFrame:
     return color_df
 
 
-def filter_links(
+def filter_links_by_affiliation_ids(
     link_df: pd.DataFrame | gpd.GeoDataFrame, affiliation_ids: list[np.int64]
 ) -> pd.DataFrame | gpd.GeoDataFrame:
     """
