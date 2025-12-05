@@ -163,10 +163,10 @@ class ImpactPlot(Impact):
         :return: A PlotGrid object containing the figure and two subplot axes.
         """
 
-        self._compute_mwprs(group_column=group_column, min_samples=min_samples, n_groups=n_groups)
+        self._compute_mwprs(group_column=group_column, min_samples=min_samples)
 
         # plot onto the pre-prepared grid axes
-        grid = self._plot_bars_onto_grid(group_column=group_column)
+        grid = self._plot_bars_onto_grid(group_column=group_column, n_groups=n_groups)
 
         return grid
 
@@ -187,12 +187,13 @@ class ImpactPlot(Impact):
         :return: A PlotGrid object containing the figure and two subplot axes.
         """
 
-        self._compute_mwprs(group_column=group_column, min_samples=min_samples, n_groups=n_groups)
+        self._compute_mwprs(group_column=group_column, min_samples=min_samples)
         grid = self._plot_time_series_onto_grid(
             node_df=self._node_df,
             node_df_filtered=self._filtered_node_df,
             group_column=group_column,
             time_freq_years=time_freq_years,
+            n_groups=n_groups,
         )
         return grid
 
@@ -245,16 +246,22 @@ class ImpactPlot(Impact):
     def _plot_bars_onto_grid(
         self,
         group_column: str = PREFERRED_AFFILIATION_NAME_COLUMN,
+        n_groups: int = _N_GROUPS_ORG_TYPE,
     ) -> PlotGrid:
 
         # get grid from config
         config_key = f"barplot_by_{group_column}"
         grid = PlotGrid.from_plot_name(config_key)
 
+        group_list = self._mwpr_df[group_column].groups[:n_groups]
         for mwpr, ax in [
             (self._mwpr_df[group_column].to_concatenated(), grid.ax1),
             (self._mwpr_filtered_df[group_column].to_concatenated(), grid.ax2),
         ]:
+            # filter top n groups
+            mwpr = mwpr[mwpr[group_column].isin(group_list)].reset_index(drop=True)
+
+            # indicate preferred names with org type subscript
             if group_column == PREFERRED_AFFILIATION_NAME_COLUMN:
                 _add_org_type_subscript_to_group_column(df=mwpr, group_column=group_column)
 
@@ -285,21 +292,18 @@ class ImpactPlot(Impact):
         self,
         min_samples: int = 0,
         group_column: str = ORGANISATION_TYPE_COLUMN,
-        n_groups: int = _N_GROUPS_ORG_TYPE,
     ) -> None:
 
         self._mwpr_df[group_column] = compute_mwpr_for_affiliation_class(
             node_df=self._node_df,
-            n_groups=n_groups,
             group_column=group_column,
             min_samples=min_samples,
         )
 
+        # min samples is only applied to the unfiltered `all` dataset
         self._mwpr_filtered_df[group_column] = compute_mwpr_for_affiliation_class(
             node_df=self._filtered_node_df,
-            n_groups=n_groups,
             group_column=group_column,
-            min_samples=min_samples,
         )
 
     def _plot_time_series_onto_grid(
@@ -308,6 +312,7 @@ class ImpactPlot(Impact):
         node_df_filtered: pd.DataFrame,
         group_column: str,
         time_freq_years: int = _TIME_FREQUENCY_YEARS,
+        n_groups: int = _N_GROUPS_ORG_TYPE,
     ) -> PlotGrid:
 
         # aggregate nodes over time
@@ -323,7 +328,7 @@ class ImpactPlot(Impact):
         grid = PlotGrid.from_plot_name(config_key)
 
         # filter and plot aggregated nodes
-        group_list = self._mwpr_df[group_column].groups
+        group_list = self._mwpr_df[group_column].groups[:n_groups]
         for time_nodes, ax in [(time_nodes, grid.ax1), (time_nodes_filtered, grid.ax2)]:
 
             # filter top n units (e.g., preferred_name or org_type)

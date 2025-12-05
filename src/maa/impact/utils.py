@@ -2,7 +2,7 @@
 
 import enum
 from dataclasses import dataclass
-from typing import List
+from typing import List, Optional
 
 import numpy as np
 import pandas as pd
@@ -237,7 +237,7 @@ class AffiliationMwpr:
 
 def compute_mwpr_for_affiliation_class(
     node_df: pd.DataFrame,
-    n_groups: int,
+    n_groups: Optional[int] = None,
     min_samples: int = 0,
     group_column: str = "preferred_name",
 ) -> AffiliationMwpr:
@@ -254,7 +254,9 @@ def compute_mwpr_for_affiliation_class(
     # compute mwPR for all affiliations
     mwpr_all = get_mean_weighted_percentile_ranks(
         df=node_df, group_column=group_column, min_samples=min_samples
-    ).head(n=n_groups)
+    )
+    if n_groups is not None:
+        mwpr_all = mwpr_all.head(n=n_groups)
     mwpr_all[AFFILIATION_CLASS_COLUMN] = AffiliationType.AA.value
 
     # Keep list of affiliation names for filtering

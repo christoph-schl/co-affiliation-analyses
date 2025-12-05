@@ -78,4 +78,5 @@ AFFILIATION_NAME_ALIASES = {
     "Naturhistorisches Museum, Vienna": "NHM",
     "Graz Centre for Electron Microscopy (ZFE)": "ZFE",
     "Tiroler Krebsforschungsinstitut": "TKFI",
+    "International Institute for Applied Systems Analysis, Laxenburg": "IIASA",
 }
