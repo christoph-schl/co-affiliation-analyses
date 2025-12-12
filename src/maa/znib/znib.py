@@ -120,10 +120,9 @@ class ZNIB(AffiliationNetworkProcessor):
 
         self._create_affiliation_graph(min_edge_weight=min_edge_weight)
 
-        if self.enriched_edges is None:
-            self.enriched_edges = enrich_edges_with_org_info(
-                edge_gdf=self.edge.edge_gdf, route_df=route_df, org_type_list=org_type_list
-            )
+        self.enriched_edges = enrich_edges_with_org_info(
+            edge_gdf=self.edge.edge_gdf, route_df=route_df, org_type_list=org_type_list
+        )
 
     @get_execution_time
     def fit_znib(
@@ -190,6 +189,7 @@ def get_gravity_model_for_year_gaps(
 
     gravity_results: Dict[str, ZNIBGravityResult] = {}
     for yg in iter_year_gaps(gravity_cfg.year_gap_stable_links):
+
         znib.min_year_gap = yg.gap
         _logger.info("processing.year_gap", gap=yg.gap, suffix=yg.suffix)
         model_data = znib.enrich_edges_with_org_info(
@@ -219,6 +219,7 @@ def get_gravity_model_for_year_gaps(
             znib_data=model_data,
             znib_intra_model=znib_intra_model,
             znib_inter_model=znib_inter_model,
+            vos_org_type_colors=znib.vos_org_type_colors,
         )
 
     gravity_datasets = GravityResultDatasets.from_dict(data=gravity_results)
