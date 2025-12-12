@@ -101,11 +101,11 @@ class OutputPaths:
 
     @property
     def intra_result(self) -> Path:
-        return self._path(GRAVITY_OUTPUT_DIR, f"{GRAVITY_INTRA_RESULTS_PREFIX}_{self.suffix}.txt")
+        return self._path(GRAVITY_OUTPUT_DIR, f"{GRAVITY_INTRA_RESULTS_PREFIX}_{self.suffix}.csv")
 
     @property
     def inter_result(self) -> Path:
-        return self._path(GRAVITY_OUTPUT_DIR, f"{GRAVITY_INTER_RESULTS_PREFIX}_{self.suffix}.txt")
+        return self._path(GRAVITY_OUTPUT_DIR, f"{GRAVITY_INTER_RESULTS_PREFIX}_{self.suffix}.csv")
 
     @property
     def violine_plot(self) -> Path:
@@ -178,7 +178,7 @@ def _write_model(model: Optional[ZINBModel], path: Path) -> None:
         return
     df = getattr(model, "result_df", None)
     if df is not None:
-        df.to_csv(path, index=False)
+        df.to_csv(path, index=True)
 
 
 @dataclass(frozen=True)

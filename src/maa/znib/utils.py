@@ -38,6 +38,9 @@ _P_VALUE_COLUMN = "P>|z|"
 _SUMMARY_RENAME_MAP = {"Std.Err.": "Robust Std.Err."}
 _HEADING_BINOMIAL = "Negative Binomial model"
 _HEADING_LOGIT = "Logit Model"
+_N_OBS_COLUMN = "No. Observations"
+_AIC_COLUMN = "AIC"
+_BIC_COLUMN = "BIC"
 _COLUMNS = [_COEFFICIENT_COLUMN, _STD_ERROR_COLUMN, _P_VALUE_COLUMN]
 
 
@@ -395,7 +398,7 @@ def _add_significance_codes(result_df: pd.DataFrame) -> pd.DataFrame:
     result_df.loc[(result_df[_P_VALUE_COLUMN] < 0.01, code_column)] = "** "
     result_df.loc[result_df[_P_VALUE_COLUMN] < 0.001, code_column] = "***"
     result_df[code_column] = (
-        result_df[_P_VALUE_COLUMN].apply(lambda x: f"{x:.4f}") + " " + result_df[code_column]
+        result_df[_P_VALUE_COLUMN].apply(lambda x: f"{x:.2f}") + " " + result_df[code_column]
     )
     result_df[_P_VALUE_COLUMN] = np.where(
         result_df[_P_VALUE_COLUMN].notnull(), result_df[code_column], result_df[_P_VALUE_COLUMN]
@@ -420,8 +423,8 @@ def model_results_to_df(znib_result: ZeroInflatedNegativeBinomialResultsWrapper)
     binom_df = summary_df[_COLUMNS].iloc[3:-1]
 
     for col in [_COEFFICIENT_COLUMN, _STD_ERROR_COLUMN]:
-        log_df[col] = log_df[col].apply(lambda x: f"{x:.4f}")
-        binom_df[col] = binom_df[col].apply(lambda x: f"{x:.4f}")
+        log_df[col] = log_df[col].apply(lambda x: f"{x:.2f}")
+        binom_df[col] = binom_df[col].apply(lambda x: f"{x:.2f}")
 
     result_df = pd.concat(
         [
@@ -434,4 +437,10 @@ def model_results_to_df(znib_result: ZeroInflatedNegativeBinomialResultsWrapper)
 
     result_df = _add_significance_codes(result_df=result_df)
 
+    first_col = result_df.columns[0]
+    result_df.loc[_N_OBS_COLUMN, first_col] = znib_result.nobs
+    result_df.loc[_AIC_COLUMN, first_col] = round(znib_result.aic, 2)
+    result_df.loc[_BIC_COLUMN, first_col] = round(znib_result.bic, 2)
+
+    result_df = result_df.round(2)
     return result_df
