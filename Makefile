@@ -4,6 +4,8 @@
 IMAGE := co-affiliation-network:latest
 CONTAINER_NAME := co-affiliation-network
 
+UTAG := metalabvienna
+
 CONFIG_DIR := $(PWD)/config
 DATA_DIR := $(PWD)/data
 
@@ -20,7 +22,7 @@ define run_docker
 		--name $(CONTAINER_NAME) \
 		-v $(CONFIG_DIR):/app/config \
 		-v $(DATA_DIR):/app/data \
-		$(IMAGE) $(1)
+		$(UTAG)/$(IMAGE) $(1)
 endef
 
 
@@ -30,7 +32,7 @@ endef
 
 ## Build docker image
 build:
-	docker build -t $(IMAGE) .
+	docker build -t $(UTAG)/$(IMAGE) .
 
 ## Open a shell inside the container
 shell:
@@ -59,6 +61,13 @@ network-args:
 ## Clean local outputs
 clean:
 	rm -rf $(DATA_DIR)/output
+
+## Push docker image to Docker Hub (make sure you are logged in)
+push:
+	@echo "Tagging image for Docker Hub..."
+	docker tag $(IMAGE) $(UTAG)/$(CONTAINER_NAME):latest
+	@echo "Pushing image to Docker Hub..."
+	docker push $(UTAG)/$(CONTAINER_NAME):latest
 
 ## Show available commands
 help:
