@@ -11,7 +11,6 @@ import structlog
 from maa.constants.constants import (
     AFFILIATION_CLASS_COLUMN,
     AFFILIATION_ID_COLUMN,
-    CLASS_NAME_COLUMN,
     COVER_DATE_COLUMN,
     DEFAULT_MAX_WORKERS_PARALLEL_PROCESSING,
     EID_COLUMN,
@@ -65,7 +64,7 @@ def merge_impact_measures_to_nodes(
         )
 
     node_df = node_df.merge(
-        right=impact_df[[ITEM_ID_COLUMN, HAZEN_PERCENTILE_COLUMN, CLASS_NAME_COLUMN]],
+        right=impact_df[[ITEM_ID_COLUMN, HAZEN_PERCENTILE_COLUMN]],
         left_on=EID_COLUMN,
         right_on=ITEM_ID_COLUMN,
         how="left",
