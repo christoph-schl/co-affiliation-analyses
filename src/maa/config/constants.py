@@ -15,17 +15,17 @@ PROJECT_ROOT = Path(__file__).resolve().parents[3]
 CONFIGURATION_PATH = PROJECT_ROOT / DATA_CONFIG_FOLDER / DATA_CONFIG_FILE
 
 # network
-DEFAULT_ARTICLE_FILE = Path("data/scopus/article_2013-01-01_2022-12-31.parquet")
-DEFAULT_AFFILIATION_FILE = Path("data/scopus/affiliation_2013-01-01_2022-12-31.gpkg")
+DEFAULT_ARTICLE_FILE = Path("data/scopus/articles_2013-01-01_2022-12-31.parquet")
+DEFAULT_AFFILIATION_FILE = Path("data/scopus/affiliations_2013-01-01_2022-12-31.gpkg")
 DEFAULT_OUTPUT_DIR = Path("data/output")
 DEFAULT_YEAR_GAP_STABLE = 2
 
 # gravity
-DEFAULT_ROUTES_FILE = Path("data/valhalla/enriched_edges.csv")
+DEFAULT_ROUTES_FILE = Path("data/valhalla/enriched_edges_2013-01-01_2022-12-31.parquet")
 DEFAULT_FIT_MODELS = True
 
 # plot
-DEFAULT_IMPACT_FILE = Path("data/impact/impact_data.csv")
+DEFAULT_IMPACT_FILE = Path("data/impact/impact_2013-01-01_2022-12-31.csv")
 DEFAULT_MIN_SAMPLES = 300
 DEFAULT_MAX_GROUP_SIZE = 10
 
@@ -36,6 +36,7 @@ class NetworkDefaults:
     affiliation_file_path: Path = DEFAULT_AFFILIATION_FILE
     output_path: Path = DEFAULT_OUTPUT_DIR
     year_gap_stable_links: int = DEFAULT_YEAR_GAP_STABLE
+    download_if_missing: bool = True
 
 
 @dataclass(frozen=True)
