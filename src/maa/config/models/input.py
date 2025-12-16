@@ -13,9 +13,15 @@ import pandas as pd
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from maa.config.constants import PROJECT_ROOT
+from maa.config.utils import download_zenodo_record
 from maa.dataframe.models.affiliation import read_affiliations
 from maa.dataframe.models.article import read_articles
 from maa.dataframe.models.route import read_routes
+
+_ZENODO_ARTICLE_RECORD_ID = "17952177"
+_ZENODO_AFFILIATION_RECORD_ID = "17953806"
+_ZENODO_ROUTES_RECORD_ID = "17954106"
+_ZENODO_IMPACT_RECORD_ID = "-9999"
 
 
 @dataclass(frozen=True)
@@ -72,7 +78,7 @@ class BaseConfig(BaseModel, ABC):
     )
 
     @abstractmethod
-    def load_inputs(self) -> input_types:
+    def load_inputs(self, download_if_missing: bool = False) -> input_types:
         """Load all required inputs for this config type."""
         raise NotImplementedError
 
@@ -118,9 +124,20 @@ class NetworkConfig(BaseConfig):
     affiliation_file_path: Path = Field(..., description="Affiliation file")
     output_path: Path = Field(..., description="Directory or file to write outputs")
     year_gap_stable_links: int = Field(..., description="Year gap for stable links")
+    download_if_missing: bool = Field(..., description="Flag whether to download missing files")
 
-    def load_inputs(self) -> "LoadedNetworkInputs":
+    def load_inputs(self, download_if_missing: bool = False) -> "LoadedNetworkInputs":
+        if not self.article_file_path.exists() and download_if_missing:
+            download_zenodo_record(
+                record_id=_ZENODO_ARTICLE_RECORD_ID, output_file_path=self.article_file_path
+            )
         articles = read_articles(self.article_file_path)
+
+        if not self.affiliation_file_path.exists() and download_if_missing:
+            download_zenodo_record(
+                record_id=_ZENODO_AFFILIATION_RECORD_ID, output_file_path=self.affiliation_file_path
+            )
+
         affiliations = read_affiliations(self.affiliation_file_path)
 
         return LoadedNetworkInputs(
@@ -136,11 +153,15 @@ class GravityConfig(NetworkConfig):
     )
     fit_models: bool = Field(..., description="Whether to fit the gravity models.")
 
-    def load_inputs(self) -> "LoadedGravityInputs":
+    def load_inputs(self, download_if_missing: bool = False) -> "LoadedGravityInputs":
         # Load the inherited inputs first
-        base = super().load_inputs()
+        base = super().load_inputs(download_if_missing=download_if_missing)
 
         # Load gravity-specific inputs
+        if not self.routes_file_path.exists() and download_if_missing:
+            download_zenodo_record(
+                record_id=_ZENODO_ROUTES_RECORD_ID, output_file_path=self.routes_file_path
+            )
         routes = read_routes(self.routes_file_path)
 
         return LoadedGravityInputs(
@@ -158,9 +179,9 @@ class RoutingConfig(NetworkConfig):
     )
     valhalla_base_url: str = Field(..., description="The base URL for the Valhalla routing engine.")
 
-    def load_inputs(self) -> "LoadedRoutingInputs":
+    def load_inputs(self, download_if_missing: bool = False) -> "LoadedRoutingInputs":
         # Load the inherited inputs first
-        base = super().load_inputs()
+        base = super().load_inputs(download_if_missing=download_if_missing)
 
         return LoadedRoutingInputs(
             config=self,
@@ -176,15 +197,20 @@ class ImpactConfig(NetworkConfig):
     min_samples: int = Field(..., description="Minimum number of samples to include")
     max_groups: int = Field(..., description="Maximum number of groups to include")
 
-    def load_inputs(self) -> "LoadedNetworkInputs":
-        articles = read_articles(self.article_file_path)
-        affiliations = read_affiliations(self.affiliation_file_path)
+    def load_inputs(self, download_if_missing: bool = False) -> "LoadedNetworkInputs":
+        base = super().load_inputs(download_if_missing=download_if_missing)
+
+        if not self.impact_file_path.exists() and download_if_missing:
+            download_zenodo_record(
+                record_id=_ZENODO_IMPACT_RECORD_ID, output_file_path=self.impact_file_path
+            )
+
         impact = pd.read_csv(self.impact_file_path)
 
         return LoadedPlotInputs(
             config=self,
-            articles=articles,
-            affiliations=affiliations,
+            articles=base.articles,
+            affiliations=base.affiliations,
             impact=impact,
             min_samples=self.min_samples,
             max_groups=self.max_groups,

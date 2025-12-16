@@ -3,6 +3,7 @@ article_file_path = "data/scopus/articles_2013-01-01_2022-12-31.parquet"
 affiliation_file_path = "data/scopus/affiliations_2013-01-01_2022-12-31.gpkg"
 output_path = "data/output"
 year_gap_stable_links = 2
+download_if_missing = true # downloads missing files
 
 [gravity]
 routes_file_path = "data/valhalla/enriched_edges_2013-01-01_2022-12-31.parquet"

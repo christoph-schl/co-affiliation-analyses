@@ -167,8 +167,6 @@ def load_inputs_from_config(
     :param validate_paths:
         Whether to verify that all configured file paths exist on disk. If True, an
         error will be raised for missing paths.
-    :param debug:
-        Enables verbose logging output when True.
     :return:
         A fully populated LoadedInputs object containing articles, affiliations,
         routes (if applicable), and references to the loaded configuration.
@@ -181,4 +179,4 @@ def load_inputs_from_config(
     )
 
     _logger.info("config.loaded", config=str(config), stage=stage)
-    return cfg.load_inputs()
+    return cfg.load_inputs(download_if_missing=cfg.download_if_missing)
