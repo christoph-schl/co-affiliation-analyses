@@ -1,18 +1,18 @@
 [network]
-article_file_path = "data/scopus/article_2013-01-01_2022-12-31.parquet"
-affiliation_file_path = "data/scopus/affiliation_2013-01-01_2022-12-31_V2.gpkg"
+article_file_path = "data/scopus/articles_2013-01-01_2022-12-31.parquet"
+affiliation_file_path = "data/scopus/affiliations_2013-01-01_2022-12-31.gpkg"
 output_path = "data/output"
 year_gap_stable_links = 2
 
 [gravity]
-routes_file_path = "data/valhalla/enriched_edges.parquet"
+routes_file_path = "data/valhalla/enriched_edges_2013-01-01_2022-12-31.parquet"
 fit_models = true
 
 [impact]
-impact_file_path = "data/impact/impact_data.csv"
+impact_file_path = "data/impact/impact_2013-01-01_2022-12-31.csv"
 min_samples = 300
 max_groups = 10
 
 [routing]
-output_file_path_routes = "data/valhalla/enriched_edges.parquet"
+output_file_path_routes = "data/valhalla/enriched_edges_2013-01-01_2022-12-31.parquet"
 valhalla_base_url = "http://localhost:8002"
