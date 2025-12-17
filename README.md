@@ -220,7 +220,7 @@ All commands accept:
 
 ------------------------------------------------------------------------
 
-### 1. Create a Default Configuration File
+### Create a Default Configuration File
 
 Generate a ready-to-use config:
 
@@ -243,7 +243,7 @@ create-default-config --force
 
 ------------------------------------------------------------------------
 
-## 2. Create Co-Affiliation Networks
+## Create Co-Affiliation Networks
 
 ``` bash
 create-network --config path/to/config.yml
@@ -251,7 +251,7 @@ create-network --config path/to/config.yml
 
 ------------------------------------------------------------------------
 
-## 3. Fit ZNIB Gravity Models
+## Fit ZNIB Gravity Models
 
 ``` bash
 create-znib-gravity-model --config path/to/config.yml
@@ -259,7 +259,7 @@ create-znib-gravity-model --config path/to/config.yml
 
 ------------------------------------------------------------------------
 
-## 4. Generate Plots
+## Generate Plots
 
 ``` bash
 create-plots --config path/to/config.yml
@@ -267,7 +267,7 @@ create-plots --config path/to/config.yml
 
 ------------------------------------------------------------------------
 
-## 5. Enrich Edges with Travel Routing Data
+## Enrich Edges with Travel Routing Data
 
 ``` bash
 enrich-edges --config path/to/config.yml --override-edges
@@ -276,13 +276,100 @@ enrich-edges --config path/to/config.yml --override-edges
 ------------------------------------------------------------------------
 
 
-## 6. Create Co-Affiliation Networks for Top Performers
+## Create Co-Affiliation Networks for Top Performers
 
 ``` bash
 create-top-performers-network --config path/to/config.yml
 ```
 
 ------------------------------------------------------------------------
+
+## CAA Docker image
+
+The `co-affiliation-network` image contains the whole library & all executables
+
+### Container Recipes
+
+#### Create a Default Configuration File
+
+To generate a default configuration file for the processing pipeline:
+
+1. Navigate to your working directory.
+2. Run the container with the `create-default-config` command.
+
+```bash
+docker run --rm -it \
+  --name co-affiliation-network \
+  -v "$PWD/config:/app/config" \
+  metalabvienna/co-affiliation-network:latest \
+  create-default-config
+```
+The container creates a config subdirectory (if it does not already exist) and mounts it at
+/app/config.
+After the container exits, you will find a config.toml file in the config directory containing
+default input paths and processing parameters.
+
+#### Create Co-affiliation Networks
+
+This command generates co-affiliation networks and stores the output in the
+`$PWD/data/output` directory.
+
+```bash
+docker run --rm -it \
+  --name co-affiliation-network \
+  -v "$PWD/config:/app/config" \
+  -v "$PWD/data:/app/data" \
+  metalabvienna/co-affiliation-network:latest \
+  create-network
+```
+
+### Fit ZNIB Gravity Models
+
+This command generates ZNIB model inputs from the co-affiliation networks and, if
+`fit_models` is set to `true` in the `config.toml` file, fits the ZNIB gravity models.
+All outputs are written to the `$PWD/data/output` directory.
+
+```bash
+docker run --rm -it \
+  --name co-affiliation-network \
+  -v "$PWD/config:/app/config" \
+  -v "$PWD/data:/app/data" \
+  metalabvienna/co-affiliation-network:latest \
+  create-znib-gravity-model
+```
+
+### Generate Plots
+
+```bash
+docker run --rm -it \
+  --name co-affiliation-network \
+  -v "$PWD/config:/app/config" \
+  -v "$PWD/data:/app/data" \
+  metalabvienna/co-affiliation-network:latest \
+  create-plots
+```
+
+### Enrich Edges with Travel Routing Data
+
+```bash
+docker run --rm -it \
+  --name co-affiliation-network \
+  -v "$PWD/config:/app/config" \
+  -v "$PWD/data:/app/data" \
+  metalabvienna/co-affiliation-network:latest \
+  enrich-edges
+```
+
+## Create Co-Affiliation Networks for Top Performers
+
+```bash
+docker run --rm -it \
+  --name co-affiliation-network \
+  -v "$PWD/config:/app/config" \
+  -v "$PWD/data:/app/data" \
+  metalabvienna/co-affiliation-network:latest \
+  create-top-performers-network
+```
 
 ## Citation
 
