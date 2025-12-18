@@ -1,7 +1,10 @@
 # -------------------------------
 # Configuration
 # -------------------------------
-IMAGE := co-affiliation-network:latest
+
+IMAGE := co-affiliation-network
+GIT_TAG := $(shell git describe --tags --exact-match 2>/dev/null)
+
 CONTAINER_NAME := co-affiliation-network
 
 UTAG := metalabvienna
@@ -11,6 +14,7 @@ DATA_DIR := $(PWD)/data
 
 # Default target
 .DEFAULT_GOAL := help
+
 
 
 # -------------------------------
@@ -30,9 +34,16 @@ endef
 # Targets
 # -------------------------------
 
-## Build docker image
 build:
-	docker build -t $(UTAG)/$(IMAGE) .
+ifndef GIT_TAG
+	@echo "No Git tag found, building image without version tag..."
+	docker build -t $(UTAG)/$(IMAGE):latest .
+else
+	@echo "Building image for Git tag $(GIT_TAG)..."
+	docker build \
+		-t $(UTAG)/$(IMAGE):$(GIT_TAG) \
+		-t $(UTAG)/$(IMAGE):latest .
+endif
 
 ## Open a shell inside the container
 shell:
@@ -64,10 +75,15 @@ clean:
 
 ## Push docker image to Docker Hub (make sure you are logged in)
 push:
-	@echo "Tagging image for Docker Hub..."
-	docker tag $(IMAGE) $(UTAG)/$(CONTAINER_NAME):latest
-	@echo "Pushing image to Docker Hub..."
-	docker push $(UTAG)/$(CONTAINER_NAME):latest
+ifndef GIT_TAG
+	$(error Not on a Git tag. Please create a Git tag (e.g. v0.9.0) before pushing.)
+endif
+	@echo "Pushing versioned image..."
+	docker push $(UTAG)/$(IMAGE):$(GIT_TAG)
+
+	@echo "Pushing latest image..."
+	docker push $(UTAG)/$(IMAGE):latest
+
 
 ## Show available commands
 help:
