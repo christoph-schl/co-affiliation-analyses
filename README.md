@@ -373,6 +373,16 @@ docker run --rm -it \
 
 ## Citation
 
-If you use CAA in your research, please cite it as:
+If you use CAA in your research, please cite:
 
-**ToDo: Add BibTex**
+```bibtex
+@software{caa_2025_v090,
+  author    = {Schlager, Christoph},
+  title     = {Co-Affiliation Analysis (CAA)},
+  year      = {2025},
+  version   = {v0.9.0},
+  publisher = {Zenodo},
+  doi       = {10.5281/zenodo.17972957},
+  url       = {https://doi.org/10.5281/zenodo.17972957}
+}
+```
