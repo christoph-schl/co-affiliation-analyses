@@ -1,23 +1,34 @@
 # Co-Affiliation Analysis (CAA)
 
-Co-Affiliation Analysis (CAA) is a Python package for analysing
-institutional pairing effects arising from co-affiliated
-authors---researchers who hold two or more institutional affiliations
-simultaneously. CAA provides tools for identifying, quantifying, and
-analysing these affiliation patterns to better understand collaboration
-dynamics within the research ecosystem.
+**Co-Affiliation Analysis (CAA)** is a Python package for analysing **institutional pairing effects induced by authors holding multiple institutional affiliations simultaneously**.
 
-------------------------------------------------------------------------
+Rather than modelling collaboration or co-authorship, CAA focuses explicitly on **concurrent multi-affiliation at the author level** and the resulting **co-affiliation structures between institutions**. These structures arise when a single author lists more than one affiliation on the same publication.
+
+CAA provides a **reproducible, configuration-driven analysis pipeline** to identify, quantify, and model these co-affiliation patterns, enabling systematic investigation of **institutional co-affiliation structures and their structural properties** within the research ecosystem.
+
+---
+
+## Features
+
+* Construction of co-affiliation networks induced by simultaneous multi-affiliation
+* Multiple network variants (full-range, stable)
+* Estimation of Zero-Inflated Negative Binomial (ZNIB) gravity models
+* Separate modelling of intra- and inter-institutional co-affiliation intensity
+* Enrichment of institutional pairs with travel distance and travel time metrics
+* Identification of top-performing research organisations using mwPR
+* Fully configurable plotting and export pipeline
+* Dependency-aware, self-contained pipeline stages
+* Command-line interface, notebooks, and Docker support
+
+---
 
 ## Installation
 
-CAA can be installed using either
-[**Poetry**](https://python-poetry.org/) or
-[**Conda**](https://docs.conda.io/), depending on your workflow.
+CAA can be installed using either **Poetry** or **Conda**, depending on your workflow.
 
-### Using Poetry
+### Using Poetry (recommended)
 
-``` bash
+```bash
 pip install poetry
 poetry install
 poetry shell
@@ -25,351 +36,198 @@ poetry shell
 
 ### Using Conda
 
-``` bash
+```bash
 conda env create -f environment.yml
 conda activate caa
 ```
 
-Update:
+Update an existing Conda environment:
 
-``` bash
+```bash
 conda env update -f environment.yml --prune
 ```
 
-------------------------------------------------------------------------
+---
+
+## Pipeline Design Philosophy
+
+CAA is organised as a **hierarchical and dependency-aware pipeline**.
+
+Each processing step:
+
+* Automatically executes all required upstream steps
+* Reuses existing intermediate outputs where available
+* Can be run independently without manual preparation
+
+### Important Implication
+
+You **do not need** to run pipeline steps sequentially by hand.
+
+For example:
+
+* Running `create_gravity_models.py` will:
+
+  1. Create all required co-affiliation networks
+  2. Generate ZNIB model input datasets
+  3. Fit the specified ZNIB gravity models
+
+The same principle applies to later stages such as plotting or routing enrichment:
+**each script ensures that all required inputs exist before continuing**.
+
+This design simplifies execution, reduces user error, and ensures reproducibility.
+
+---
 
 ## Quick Start
 
-After installing the package, the main workflow can be executed using
-the CLI scripts in `scripts/`.\
-Each script corresponds to a Jupyter notebook in `notebooks/`, providing
-a full worked example of the pipeline.
+CAA is controlled via a single configuration file.
+Each CLI script corresponds to a fully worked example notebook in the `notebooks/` directory.
 
-### Step 1 --- Create a default configuration file
+### Create a Default Configuration File
 
-``` bash
+```bash
 create-default-config
 ```
 
 **Options**
 
--   `--output, -o <path>`
--   `--force, -f`
+* `--output, -o <path>` — output location
+* `--force, -f` — overwrite existing configuration
 
-**Examples**
+---
 
-``` bash
-create-default-config
-create-default-config --output ./config.toml
-create-default-config --force
-```
+## Conceptual Overview
 
-------------------------------------------------------------------------
+CAA analyses **co-affiliation**, defined as the simultaneous presence of two or more institutional affiliations on a single author record within the same publication instance.
 
-## Main processing pipeline
+Example:
 
-### **1. create_co_affiliation_networks.py**
+* Author A lists *Institution 1* and *Institution 2* on the same publication
+* This induces a co-affiliation edge between Institution 1 and Institution 2
 
-Builds all co-affiliation network variants defined in the configuration.
+Aggregating these instances across publications and time yields **institutional co-affiliation networks**.
 
--   Reads network settings from the configuration file.
--   Builds **year-gap**, **full-range**, and **stable** co-affiliation
-    networks.
--   Optionally validates input/output paths.
--   Writes all generated network files to the configured output folder.
+---
 
-Notebook: `notebooks/create_co_affiliation_networks.ipynb`
+## Main Processing Pipeline
 
-```python
-from maa.network.network import create_networks_from_config
-from maa.config.constants import CONFIGURATION_PATH
+### 1. Create Co-Affiliation Networks
 
-networks = create_networks_from_config(
-        config_path=CONFIGURATION_PATH,
-        write_outputs_to_file=True,
-    )
-```
+**Script:** `create_co_affiliation_networks.py`
+**Notebook:** `notebooks/create_co_affiliation_networks.ipynb`
 
-------------------------------------------------------------------------
+Builds all co-affiliation network variants defined in the configuration file.
 
-### **2. create_gravity_models.py**
+> Note: This step is automatically executed by downstream pipeline stages if required.
 
-Constructs and fits all ZNIB gravity models.
+---
 
--   Loads model settings from the project configuration.
--   Builds the required ZNIB model input datasets.
--   Fits zero-inflated negative binomial model variants.
--   Outputs fitted models and diagnostic files.
+### 2. Fit ZNIB Gravity Models
 
-Notebook: `notebooks/create_gravity_models.ipynb`
+**Script:** `create_gravity_models.py`
+**Notebook:** `notebooks/create_gravity_models.ipynb`
+
+This script is **self-contained** and performs the following steps:
+
+1. Creates all required co-affiliation networks (if not already present)
+2. Builds ZNIB model input datasets
+3. Fits zero-inflated negative binomial gravity models
+4. Writes fitted models and diagnostics to disk
 
 ```python
 from maa.znib.znib import create_znib_gravity_models_from_config
 from maa.config.constants import CONFIGURATION_PATH
 
 models = create_znib_gravity_models_from_config(
-        config_path=CONFIGURATION_PATH,
-        write_outputs_to_file=True,
-    )
-
-# intra model results
-print(models.all.znib_intra_model.summary)
-print(models.stable.znib_intra_model.summary)
-
-# inter model results
-print(models.all.znib_inter_model.summary)
-print(models.stable.znib_inter_model.summary)
+    config_path=CONFIGURATION_PATH,
+    write_outputs_to_file=True,
+)
 ```
 
-------------------------------------------------------------------------
+---
 
-### **3. create_plots.py**
+### 3. Generate Plots
 
-Generates all configured visualisations.
+**Script:** `create_plots.py`
+**Notebook:** `notebooks/create_plots.ipynb`
 
--   Loads plot definitions from the configuration file.
--   Validates dependencies (optional).
--   Produces network figures, model plots, and supplementary
-    visualisations.
--   Writes all plots to the configured plot directory.
+This step automatically ensures that all required networks and model outputs exist before generating figures.
 
-Notebook: `notebooks/create_plots.ipynb
+---
 
-```python
-from maa.plot.plot import create_plots_from_config
-from maa.config.constants import CONFIGURATION_PATH
+### 4. Enrich Edges with Travel Routing Data
 
-create_plots_from_config(
-        config_path=CONFIGURATION_PATH,
-        write_outputs_to_file=True,
-    )
-````
+**Script:** `enrich_edges_with_travel_data.py`
+**Notebook:** `notebooks/enrich_edges_with_travel_data.ipynb`
 
-------------------------------------------------------------------------
+This script:
 
-### **4. enrich_edges_with_travel_data.py**
+* Creates an unfiltered co-affiliation network if required
+* Generates all institutional pairs
+* Attaches distance and travel-time metrics
 
-Builds and enriches affiliation edges with travel routing information.
+---
 
--   Constructs an unfiltered co-affiliation network.
--   Generates all possible affiliation pairs.
--   Queries the Valhalla routing engine to attach distance/time
-    metrics.
--   Saves enriched edges to the routing output folder.
--   Supports `--override-edges` to overwrite existing results.
+### 5. Create Networks for Top Performers
 
-Notebook: `notebooks/enrich_edges_with_travel_data.ipynb`
+**Script:** `create_top_performers_networks.py`
 
-```python
-from maa.routing.routing import create_and_enrich_edges_from_config
-from maa.config.constants import CONFIGURATION_PATH
+Automatically builds the full-range co-affiliation network (if required), computes mwPR, and filters network connections accordingly.
 
-edges = create_and_enrich_edges_from_config(
-        config_path=CONFIGURATION_PATH,
-        write_outputs_to_file=True,
-    )
-print(edges.head())
-````
-
-------------------------------------------------------------------------
-
-### **5. create_top_performers_networks.py**
-
-Builds and enriches affiliation edges with travel routing information.
-
--   Reads network settings from the configuration file.
--   Builds **year-gap**, **full-range**, and **stable** co-affiliation
-    networks.
--   Computes mwPR for the **full-range** network and filters top performing research organisations
--   Filters network connections from top performing organisations.
--   Writes all filtered network files to the configured output folder.
-
-
-```python
-from maa.network.network import create_top_performers_networks_from_config
-from maa.config.constants import CONFIGURATION_PATH
-
-networks = create_top_performers_networks_from_config(
-        config_path=CONFIGURATION_PATH,
-        write_outputs_to_file=True,
-    )
-```
-
-------------------------------------------------------------------------
+---
 
 ## Running Scripts Directly
 
-``` bash
-python scripts/create_co_affiliation_networks.py --config config/config.toml
+Any pipeline step can be executed independently:
+
+```bash
 python scripts/create_gravity_models.py --config config/config.toml
-python scripts/create_plots.py --config config/config.toml
-python scripts/enrich_edges_with_travel_data.py --config config/config.toml
 ```
 
-------------------------------------------------------------------------
+This single command is sufficient to generate networks, model inputs, and fitted ZNIB models.
 
-## Command line interface (CLI)
+---
 
-CAA provides several CLI entry points after installation.
+## Command Line Interface (CLI)
 
-All commands accept:
+All CLI commands support:
 
--   `--config <path>`
--   `--validate-paths`
--   `--debug`
+* `--config <path>`
+* `--validate-paths`
+* `--debug`
 
-------------------------------------------------------------------------
+### Available Commands
 
-### Create a Default Configuration File
-
-Generate a ready-to-use config:
-
-``` bash
+```bash
 create-default-config
+create-network
+create-znib-gravity-model
+create-plots
+enrich-edges
+create-top-performers-network
 ```
 
-#### Options
+Each command is dependency-aware and can be run independently.
 
--   `--output, -o <path>` --- where to write the TOML file\
--   `--force, -f` --- overwrite existing config
+---
 
-### Examples
+## Docker Usagenotebooks/create_gravity_models.ipynb i
 
-``` bash
-create-default-config
-create-default-config --output ./config.toml
-create-default-config --force
-```
+The Docker image `metalabvienna/co-affiliation-network` provides a fully containerised execution environment including all CLI tools.
 
-------------------------------------------------------------------------
-
-## Create Co-Affiliation Networks
-
-``` bash
-create-network --config path/to/config.yml
-```
-
-------------------------------------------------------------------------
-
-## Fit ZNIB Gravity Models
-
-``` bash
-create-znib-gravity-model --config path/to/config.yml
-```
-
-------------------------------------------------------------------------
-
-## Generate Plots
-
-``` bash
-create-plots --config path/to/config.yml
-```
-
-------------------------------------------------------------------------
-
-## Enrich Edges with Travel Routing Data
-
-``` bash
-enrich-edges --config path/to/config.yml --override-edges
-```
-
-------------------------------------------------------------------------
-
-
-## Create Co-Affiliation Networks for Top Performers
-
-``` bash
-create-top-performers-network --config path/to/config.yml
-```
-
-------------------------------------------------------------------------
-
-## CAA Docker image
-
-The `co-affiliation-network` image contains the whole library & all executables
-
-### Container Recipes
-
-#### Create a Default Configuration File
-
-To generate a default configuration file for the processing pipeline:
-
-1. Navigate to your working directory.
-2. Run the container with the `create-default-config` command.
+### Example: Fit Gravity Models Only
 
 ```bash
 docker run --rm -it \
-  --name co-affiliation-network \
-  -v "$PWD/config:/app/config" \
-  metalabvienna/co-affiliation-network:latest \
-  create-default-config
-```
-The container creates a config subdirectory (if it does not already exist) and mounts it at
-/app/config.
-After the container exits, you will find a config.toml file in the config directory containing
-default input paths and processing parameters.
-
-#### Create Co-affiliation Networks
-
-This command generates co-affiliation networks and stores the output in the
-`$PWD/data/output` directory.
-
-```bash
-docker run --rm -it \
-  --name co-affiliation-network \
-  -v "$PWD/config:/app/config" \
-  -v "$PWD/data:/app/data" \
-  metalabvienna/co-affiliation-network:latest \
-  create-network
-```
-
-### Fit ZNIB Gravity Models
-
-This command generates ZNIB model inputs from the co-affiliation networks and, if
-`fit_models` is set to `true` in the `config.toml` file, fits the ZNIB gravity models.
-All outputs are written to the `$PWD/data/output` directory.
-
-```bash
-docker run --rm -it \
-  --name co-affiliation-network \
   -v "$PWD/config:/app/config" \
   -v "$PWD/data:/app/data" \
   metalabvienna/co-affiliation-network:latest \
   create-znib-gravity-model
 ```
 
-### Generate Plots
+No prior pipeline steps are required.
 
-```bash
-docker run --rm -it \
-  --name co-affiliation-network \
-  -v "$PWD/config:/app/config" \
-  -v "$PWD/data:/app/data" \
-  metalabvienna/co-affiliation-network:latest \
-  create-plots
-```
-
-### Enrich Edges with Travel Routing Data
-
-```bash
-docker run --rm -it \
-  --name co-affiliation-network \
-  -v "$PWD/config:/app/config" \
-  -v "$PWD/data:/app/data" \
-  metalabvienna/co-affiliation-network:latest \
-  enrich-edges
-```
-
-## Create Co-Affiliation Networks for Top Performers
-
-```bash
-docker run --rm -it \
-  --name co-affiliation-network \
-  -v "$PWD/config:/app/config" \
-  -v "$PWD/data:/app/data" \
-  metalabvienna/co-affiliation-network:latest \
-  create-top-performers-network
-```
+---
 
 ## Citation
 
@@ -386,3 +244,5 @@ If you use CAA in your research, please cite:
   url       = {https://doi.org/10.5281/zenodo.17972957}
 }
 ```
+
+---
