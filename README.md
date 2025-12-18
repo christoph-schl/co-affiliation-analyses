@@ -211,7 +211,7 @@ Each command is dependency-aware and can be run independently.
 
 ---
 
-## Docker Usagenotebooks/create_gravity_models.ipynb i
+## Docker Usage
 
 The Docker image `metalabvienna/co-affiliation-network` provides a fully containerised execution environment including all CLI tools.
 
