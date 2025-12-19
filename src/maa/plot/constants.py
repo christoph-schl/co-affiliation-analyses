@@ -79,4 +79,5 @@ AFFILIATION_NAME_ALIASES = {
     "Graz Centre for Electron Microscopy (ZFE)": "ZFE",
     "Tiroler Krebsforschungsinstitut": "TKFI",
     "International Institute for Applied Systems Analysis, Laxenburg": "IIASA",
+    "Wiener Gesundheitsverbund Klinik Landstraße": "Klinik Landstraße",
 }
